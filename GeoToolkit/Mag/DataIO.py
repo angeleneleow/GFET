@@ -321,7 +321,7 @@ class dataGrid(object):
 
             self._tiltAngle = np.arctan2(
                 self.firstVertical, self.totalHorizontal
-            )
+            )*180/np.pi
 
         return self._tiltAngle
 
@@ -345,7 +345,7 @@ class dataGrid(object):
 
               self._TDXderivative = np.arctan2(
                 self.totalHorizontal, self.firstVertical
-            )
+            )*180/np.pi
 
           return self._TDXderivative
 
