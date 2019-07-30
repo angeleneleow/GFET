@@ -93,7 +93,7 @@ def units():
     return {
         'derivativeX': '[nT/m]', 'derivativeY': '[nT/m]',
         'firstVertical': '[nT/m]', 'totalHorizontal': '[nT/m]',
-        'tiltAngle': '[Degree]', 'analyticSignal': '[nT/m]',
+        'tiltAngle': '[rad]', 'analyticSignal': '[nT/m]',
         'TDXderivative': '[Degree]','RTP': '[nT]', 'TMI': '[nT]'
         }
 
@@ -979,6 +979,7 @@ def dataHillsideWidget(
 
         if SaveGrid:
             lims = gridObject.limits
+            print(gridObject.values)
             DataIO.writeGeotiff(
                 gridObject.values, saveAs + '_GRID.tiff',
                 gridObject.EPSGcode, lims[0], lims[1],
@@ -1354,7 +1355,7 @@ def gridFiltersWidget(
             'TMI',
             'derivativeX', 'derivativeY', 'firstVertical',
             'totalHorizontal', 'tiltAngle', 'analyticSignal',
-        'TDXderivative'],
+            'TDXderivative'],
         value=gridFilter,
         description='Grid Filters',
         disabled=False,
