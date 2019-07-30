@@ -318,7 +318,7 @@ class dataGrid(object):
 
             self._tiltAngle = np.arctan2(
                 self.firstVertical, self.totalHorizontal
-            )*180/np.pi
+            )
 
         return self._tiltAngle
 
