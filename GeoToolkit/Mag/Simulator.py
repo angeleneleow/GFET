@@ -2304,6 +2304,7 @@ def setDataExtentWidget(
                     "The geotiff will be reprojected"
                     )
                 DataIO.gdalWarp(
+<<<<<<< HEAD
                     saveAs + 'EPSG' + str(EPSGcode) + '.tiff',
                     saveAs + '.tiff', int(EPSGcode)
                 )
@@ -2312,6 +2313,15 @@ def setDataExtentWidget(
                     saveAs + 'EPSG' + str(int(EPSGcode)) + '.tiff'
                     )
 
+=======
+                    saveAs + "EPSG" + str(EPSGcode) + ".tiff",
+                    saveAs + ".tiff",
+                    int(EPSGcode),
+                )
+                print(
+                    "New file written:" + saveAs + "EPSG" + str(int(EPSGcode)) + ".tiff"
+                )
+>>>>>>> add notebooks
 
         # fig,
         axs = plt.subplot(1, 2, 2)
@@ -2472,7 +2482,11 @@ def plotSave(
                 saveAs + '_EPSG' + str(int(EPSGcode)) + '.tiff'
                 )
 
+<<<<<<< HEAD
         os.remove(saveAs + '.png')
+=======
+        os.remove(saveAs + ".png")     #display png on 
+>>>>>>> add notebooks
 
         fig, ax = plt.figure(), plt.subplot()
         plt.gca().set_visible(False)
