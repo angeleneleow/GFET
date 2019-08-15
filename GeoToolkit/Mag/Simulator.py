@@ -81,7 +81,7 @@ def cmaps():
     return [
         'viridis', 'plasma', 'magma', 'Spectral_r',
         'Greys_r', 'jet', 'rainbow', 'pink', 'RdBu_r',
-        'bone', 'hsv', 'nipy_spectral'
+        'bone', 'hsv', 'nipy_spectral','geosoft','coolwarm'
         ]
 
 
@@ -602,7 +602,7 @@ class MidPointNorm(Normalize):
 
             # First scale to -1 to 1 range, than to from 0 to 1.
             resdat -= midpoint
-            resdat[resdat > 0] /= abs(vmax - midpoint)
+            resdat[resdat > 0] /= abs(vmax - midpoint) # resdat[resdat > 0]= resdat[resdat > 0] / abs(vmax - midpoint)
             resdat[resdat < 0] /= abs(vmin - midpoint)
 
             resdat /= 2.
@@ -756,7 +756,7 @@ def plotDataHillside(x, y, z, axs=None, fill=True, contours=None,
 
 def plotData2D(x, y, d, title=None,
                vmin=None, vmax=None, contours=0, fig=None, ax=None,
-               colorbar=True, marker=True, cmap="Spectral_r",
+               colorbar=True, marker=True, cmap="geosoft",
                equalizeHist='HistEqualized', shapeFile=None):
     """ Function plot_obs(rxLoc,d)
     Generate a 2d interpolated plot from scatter points of data
@@ -1741,7 +1741,7 @@ def worldViewerWidget(worldFile, data, grid, z=0, shapeFile=None):
         ax1 = plt.subplot(1, 2, 1)
         fig, im, cbar = plotData2D(
           xyz[:, 0], xyz[:, 1], survey.dobs,
-          ax=ax1, cmap='Spectral_r', marker=False, colorbar=False,
+          ax=ax1, cmap='geosoft', marker=False, colorbar=False,
           shapeFile=shapeFile
         )
 
@@ -2304,16 +2304,6 @@ def setDataExtentWidget(
                     "The geotiff will be reprojected"
                     )
                 DataIO.gdalWarp(
-<<<<<<< HEAD
-                    saveAs + 'EPSG' + str(EPSGcode) + '.tiff',
-                    saveAs + '.tiff', int(EPSGcode)
-                )
-                print(
-                    "New file written:" +
-                    saveAs + 'EPSG' + str(int(EPSGcode)) + '.tiff'
-                    )
-
-=======
                     saveAs + "EPSG" + str(EPSGcode) + ".tiff",
                     saveAs + ".tiff",
                     int(EPSGcode),
@@ -2321,7 +2311,6 @@ def setDataExtentWidget(
                 print(
                     "New file written:" + saveAs + "EPSG" + str(int(EPSGcode)) + ".tiff"
                 )
->>>>>>> add notebooks
 
         # fig,
         axs = plt.subplot(1, 2, 2)
@@ -2482,11 +2471,7 @@ def plotSave(
                 saveAs + '_EPSG' + str(int(EPSGcode)) + '.tiff'
                 )
 
-<<<<<<< HEAD
-        os.remove(saveAs + '.png')
-=======
         os.remove(saveAs + ".png")     #display png on 
->>>>>>> add notebooks
 
         fig, ax = plt.figure(), plt.subplot()
         plt.gca().set_visible(False)
