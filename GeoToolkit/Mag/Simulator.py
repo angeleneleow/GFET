@@ -728,10 +728,6 @@ def plotObj3D(
     if survey.dobs is not None:
         color = survey.dobs
     else:
-<<<<<<< HEAD
-        color = 'k'
-    axs.scatter(rxLoc[:, 0], rxLoc[:, 1], zs=rxLoc[:, 2], c=color, s=20, cmap='Spectral_r', zorder=100)
-=======
         color = "k"
     axs.scatter(
         rxLoc[:, 0],
@@ -742,7 +738,6 @@ def plotObj3D(
         cmap="RdBu_r",
         zorder=100,
     )
->>>>>>> add export grid in dataGridgeoRef
 
     # Convert from geographic
     azmDeg = (450 - View_azm) % 360 + 180
@@ -937,17 +932,6 @@ class MidPointNorm(Normalize):
             if val < 0:
                 return val * abs(vmin - midpoint) + midpoint
             else:
-<<<<<<< HEAD
-                return val*abs(vmax-midpoint) + midpoint
-
-
-def plotDataHillside(x, y, z, axs=None, fill=True, contours=None,
-                     vmin=None, vmax=None, resolution=25,
-                     clabel=True, cmap='Spectral_r', ve=1., alpha=0.5, alphaHS=0.5,
-                     distMax=1000, midpoint=None, azdeg=315, altdeg=45,
-                     equalizeHist='HistEqualized', minCurvature=True,
-                     scatterData=None, shapeFile=None):
-=======
                 return val * abs(vmax - midpoint) + midpoint
 
 
@@ -975,7 +959,6 @@ def plotDataHillside(
     scatterData=None,
     shapeFile=None,
 ):
->>>>>>> add export grid in dataGridgeoRef
 
     ls = LightSource(azdeg=azdeg, altdeg=altdeg)
 
@@ -1101,12 +1084,6 @@ def plotDataHillside(
     return X, Y, d_grid, im, CS
 
 
-<<<<<<< HEAD
-def plotData2D(x, y, d, title=None,
-               vmin=None, vmax=None, contours=0, fig=None, ax=None,
-               colorbar=True, marker=True, cmap="geosoft",
-               equalizeHist='HistEqualized', shapeFile=None):
-=======
 def plotData2D(
     x,
     y,
@@ -1123,7 +1100,6 @@ def plotData2D(
     equalizeHist="HistEqualized",
     shapeFile=None,
 ):
->>>>>>> add export grid in dataGridgeoRef
     """ Function plot_obs(rxLoc,d)
     Generate a 2d interpolated plot from scatter points of data
 
@@ -1514,14 +1490,10 @@ def dataHillsideWidget(
     )
 
     ColorMap = widgets.Dropdown(
-<<<<<<< HEAD
         options=cmaps(),
         value='Spectral_r',
         description='ColorMap',
         disabled=False,
-=======
-        options=cmaps(), value="RdBu_r", description="ColorMap", disabled=False
->>>>>>> add export grid in dataGridgeoRef
     )
 
     vmin = data[~np.isnan(data)].min()
@@ -1609,25 +1581,6 @@ def dataHillsideWidget(
 
 
 def gridFiltersWidget(
-<<<<<<< HEAD
-    gridObject, gridFilter='derivativeX',
-    ColorTransp=0.9, HSTransp=0.5,
-    EPSGcode=None, dpi=300, scatterData=None,
-    inc=np.nan, dec=np.nan, Contours=None,
-    SunAzimuth=270, SunAngle=15, vScale=5.,
-    ColorMap='Spectral_r', shapeFile=None,
-    saveAs="./Output/MyGeoTiff_" + 'derivativeX',
-    ShapeFileName="./Output/Contours_" + 'derivativeX',
-    omit=[]
-):
-
-    gridProps = [
-        'valuesFilledUC', 'valuesFilled',
-        'derivativeX', 'derivativeY', 'firstVertical',
-        'totalHorizontal', 'tiltAngle', 'analyticSignal',
-        'TDXderivative', 'gridFFT', 'gridPadded',
-      ]
-=======
     gridObject,
     gridFilter="derivativeX",
     ColorTransp=0.9,
@@ -1661,7 +1614,6 @@ def gridFiltersWidget(
         "gridFFT",
         "gridPadded",
     ]
->>>>>>> add export grid in dataGridgeoRef
 
     def plotWidget(
         Filters,
@@ -1872,11 +1824,6 @@ def gridFiltersWidget(
 
     Filters.observe(labelUpdate)
     UpDist = widgets.FloatSlider(
-<<<<<<< HEAD
-        min=0, max=5000, step=10, value=0,
-        continuous_update=False, description='UpC Height'
-        )
-=======
         min=0,
         max=200,
         step=10,
@@ -1884,7 +1831,6 @@ def gridFiltersWidget(
         continuous_update=False,
         description="UpC Height",
     )
->>>>>>> add export grid in dataGridgeoRef
     SaveGrid = widgets.ToggleButton(
         value=False,
         description="Export GeoTiff",
@@ -1956,14 +1902,6 @@ def gridFiltersWidget(
 
 
 def gridTilt2Depth(
-<<<<<<< HEAD
-    gridObject, gridFilter='tiltAngle',
-    ColorTransp=0.9, HSTransp=0.5,
-    EPSGcode=None, dpi=300, scatterData=None,
-    SunAzimuth=270, SunAngle=15, vScale=5., shapeFile=None,
-    ColorMap='Spectral_r', ColorDepth='viridis_r', depthRange=[0, 500],
-    markerSize=1, omit=[],
-=======
     gridObject,
     gridFilter="tiltAngle",
     ColorTransp=0.9,
@@ -1980,7 +1918,6 @@ def gridTilt2Depth(
     depthRange=[0, 500],
     markerSize=1,
     omit=[],
->>>>>>> add export grid in dataGridgeoRef
     ShapeFileName="./Output/EstimatedDepth",
     GridFileName="./Output/MyGeoTiff",
     CSVFileName="./Output/EstimatedDepth.csv",
@@ -2310,11 +2247,6 @@ def worldViewerWidget(worldFile, data, grid, z=0, shapeFile=None):
         plt.figure(figsize=(10, 8))
         ax1 = plt.subplot(1, 2, 1)
         fig, im, cbar = plotData2D(
-<<<<<<< HEAD
-          xyz[:, 0], xyz[:, 1], survey.dobs,
-          ax=ax1, cmap='geosoft', marker=False, colorbar=False,
-          shapeFile=shapeFile
-=======
             xyz[:, 0],
             xyz[:, 1],
             survey.dobs,
@@ -2323,7 +2255,6 @@ def worldViewerWidget(worldFile, data, grid, z=0, shapeFile=None):
             marker=False,
             colorbar=False,
             shapeFile=shapeFile,
->>>>>>> add export grid in dataGridgeoRef
         )
 
         ax1.set_xticks([0])
@@ -2622,16 +2553,11 @@ def dataGriddingWidget(
         disabled=False,
     )
     ColorMap = widgets.Dropdown(
-<<<<<<< HEAD
         options=cmaps(),
         value='Spectral_r',
         description='ColorMap',
         disabled=False,
         )
-=======
-        options=cmaps(), value="RdBu_r", description="ColorMap", disabled=False
-    )
->>>>>>> add export grid in dataGridgeoRef
     EPSGcode = widgets.FloatText(
         value=EPSGcode, description="EPSG code:", disabled=False
     )
@@ -2749,12 +2675,6 @@ def dataGridGeoref(
                 return gridObject
 
         plotSave(
-<<<<<<< HEAD
-            gridObject, gridObject.values, None, None,
-            90, 15, 1, 0, 1, None,
-            "Spectral_r", units, None, None, 'HistEqualized', "", EPSGcode,
-            False, dpi=200
-=======
             gridObject,
             values,
             None,
@@ -2774,7 +2694,6 @@ def dataGridGeoref(
             EPSGcode,
             SaveGrid,
             dpi=200,
->>>>>>> add export grid in dataGridgeoRef
         )
 
     
@@ -2827,16 +2746,11 @@ def dataGridGeoref(
             print("Image saved as: " + saveAs.value)
 
     ColorMap = widgets.Dropdown(
-<<<<<<< HEAD
         options=cmaps(),
         value='Spectral_r',
         description='ColorMap',
         disabled=False,
         )
-=======
-        options=cmaps(), value="RdBu_r", description="ColorMap", disabled=False
-    )
->>>>>>> add export grid in dataGridgeoRef
 
     if gridObject.EPSGcode is not None:
         EPSGcode = gridObject.EPSGcode
@@ -3212,11 +3126,7 @@ def plotSave(
             )
             print("New file written:" + saveAs + "_EPSG" + str(int(EPSGcode)) + ".tiff")
 
-<<<<<<< HEAD
-        os.remove(saveAs + ".png")     #display png on 
-=======
         os.remove(saveAs + ".png")
->>>>>>> add export grid in dataGridgeoRef
 
         fig, ax = plt.figure(), plt.subplot()
         plt.gca().set_visible(False)
