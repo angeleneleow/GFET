@@ -429,11 +429,6 @@ def ViewMagSurveyWidget(survey, shapeFile=None):
     return out
 
 
-<<<<<<< HEAD
-def plotMagSurvey2D(x, y, data, a, b, npts, pred=None, marker=True,
-                    fig=None, ax=None, vmin=None, vmax=None, shapeFile=None,
-                    cmap='Spectral_r', equalizeHist='HistEqualized'):
-=======
 def plotMagSurvey2D(
     x,
     y,
@@ -451,7 +446,6 @@ def plotMagSurvey2D(
     cmap="RdBu_r",
     equalizeHist="HistEqualized",
 ):
->>>>>>> add export grid in dataGridgeoRef
     """
     Plot the data and line profile inside the spcified limits
     """
