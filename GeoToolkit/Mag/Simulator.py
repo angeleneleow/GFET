@@ -1491,7 +1491,7 @@ def dataHillsideWidget(
     )
 
     ColorMap = widgets.Dropdown(
-        options=cmaps(),
+        options=cmaps(), 
         value='Spectral_r',
         description='ColorMap',
         disabled=False,
