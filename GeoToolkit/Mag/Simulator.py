@@ -1620,17 +1620,20 @@ def gridFiltersWidget(
         Filters,
         UpDist,
         ColorMap,
+        VminVmax,
+        Equalize,
         ColorTransp,
         SunAzimuth,
         SunAngle,
         HSTransp,
         vScale,
+        EPSGcode,
+        Contours,
         saveAs,
         SaveGrid,
-        Contours,
         ShapeFileName,
         SaveShape,
-        EPSGcode,
+       
     ):
 
         # If changed upward distance, reset the FFT
@@ -1718,9 +1721,9 @@ def gridFiltersWidget(
             Contours,
             ColorMap,
             Filters,
-            vmin,
-            vmax,
-            "HistEqualized",
+            VminVmax[0],
+            VminVmax[1],
+            Equalize,
             saveAs,
             EPSGcode,
             SaveGrid,
@@ -1804,9 +1807,15 @@ def gridFiltersWidget(
     ColorMap = widgets.Dropdown(
         options=cmaps(), value=ColorMap, description="ColorMap", disabled=False
     )
-    Contours = widgets.Text(
-        value=Contours, description="Contours", disabled=False, continuous_update=False
+
+    Maghigh = widgets.IntSlider(
+        min=0, max=100, step=2, value=Contours, continuous_update=False,
+        description='Contours'
     )
+
+
+
+
     Filters = widgets.Dropdown(
         options=[
             "TMI",
@@ -1824,6 +1833,29 @@ def gridFiltersWidget(
     )
 
     Filters.observe(labelUpdate)
+
+    vmin = data[~np.isnan(data)].min()
+    vmax = data[~np.isnan(data)].max()
+    VminVmax = widgets.FloatRangeSlider(
+        value=[vmin, vmax],
+        min=vmin,
+        max=vmax,
+        step=1.0,
+        description="Color Range",
+        disabled=False,
+        continuous_update=False,
+        orientation="horizontal",
+        readout=True,
+        readout_format=".1f",
+    )
+
+    Equalize = widgets.Dropdown(
+        options=["Linear", "HistEqualized"],
+        value="HistEqualized",
+        description="Color Normalization",
+        disabled=False,
+    )
+
     UpDist = widgets.FloatSlider(
         min=0,
         max=5000,
@@ -1868,6 +1900,8 @@ def gridFiltersWidget(
         "Filters": Filters,
         "UpDist": UpDist,
         "ColorMap": ColorMap,
+        "VminVmax": VminVmax,
+        "Equalize": Equalize,
         "ColorTransp": ColorTransp,
         "SunAzimuth": SunAzimuth,
         "SunAngle": SunAngle,
@@ -1904,7 +1938,7 @@ def gridFiltersWidget(
 
 def gridTilt2Depth(
     gridObject,
-    gridFilter="tiltAngle",
+    gridFilter="TDXderivative",
     ColorTransp=0.9,
     HSTransp=0.5,
     EPSGcode=None,
@@ -2125,6 +2159,7 @@ def gridTilt2Depth(
         continuous_update=False,
         description="UpC Height",
     )
+
     SaveGrid = widgets.ToggleButton(
         value=False,
         description="Export GeoTiff",
@@ -2614,101 +2649,102 @@ def dataGridGeoref(
     dec=np.nan,
     ndv=np.nan,
     applyRTP=False,
-    omit=[],
     units="RTP",
     omit=[]
 ):
 
-values = gridObject.values.copy()
+    values = gridObject.values.copy()
 
-def plotWidget(
-    ColorMap,
-    EPSGcode, 
-    GetIncDec, 
-    inc, 
-    dec, 
-    ndv,  
-    units,
-    applyRTP,
-    saveAs, 
-    SaveGrid
-):
-
-    gridObject._values = values
-
-    if ~np.isnan(ndv):
-        gridObject._values[values == ndv] = np.nan
-
-    if not np.isnan(EPSGcode):
-        gridObject.EPSGcode = int(EPSGcode)
-
-    gridObject.inc, gridObject.dec = inc, dec
-
-    gridObject.setRTP(applyRTP)
-
-    if SaveGrid:
-
-        if np.isnan(EPSGcode) and getattr(gridObject, "EPSGcode", None) is None:
-            print("Need to assign an EPSGcode before exporting")
-            return
-    
-        elif getattr(gridObject, "EPSGcode", None) is None:
-            gridObject.EPSGcode = int(EPSGcode)
-    
-        DataIO.writeGeotiff(
-            values,
-            saveAs + ".tiff",
-            gridObject.EPSGcode,
-            gridObject.limits[0],
-            gridObject.limits[1],
-            gridObject.limits[2],
-            gridObject.limits[3],
-            1,
-            dataType="grid",
-        )
-    
-        if gridObject.EPSGcode != EPSGcode:
-    
-            print(
-                "Output EPSG code differ from input grid definition."
-                "The geotiff will be reprojected"
-            )
-            DataIO.gdalWarp(
-                saveAs + "EPSG" + str(EPSGcode) + ".tiff",
-                saveAs + ".tiff",
-                int(EPSGcode),
-            )
-            print(
-                "New file written:"
-                + saveAs
-                + "_EPSG"
-                + str(int(EPSGcode))
-                + "_GRID.tiff"
-            )
-            
-
-    plotSave(
-        gridObject,
-        gridObject.values,
-        None,
-        None,
-        90,
-        15,
-        1,
-        0,
-        1,
-        None,
-        "RdBu_r",
+    def plotWidget(
+        ColorMap,
+        EPSGcode, 
+        GetIncDec, 
+        inc, 
+        dec, 
+        ndv,  
         units,
-        None,
-        None,
-        "HistEqualized",
-        "",
-        EPSGcode,
-        SaveGrid,
-        dpi=200,
-        )
+        applyRTP,
+        saveAs, 
+        SaveGrid
+    ):
+
+        gridObject._values = values
+
+        if ~np.isnan(ndv):
+            gridObject._values[values == ndv] = np.nan
+
+        if not np.isnan(EPSGcode):
+            gridObject.EPSGcode = int(EPSGcode)
+
+        gridObject.inc, gridObject.dec = inc, dec
+
+        gridObject.setRTP(applyRTP)
+
+        if SaveGrid:
+
+            if np.isnan(EPSGcode) and getattr(gridObject, "EPSGcode", None) is None:
+                print("Need to assign an EPSGcode before exporting")
+                return
+    
+            elif getattr(gridObject, "EPSGcode", None) is None:
+                gridObject.EPSGcode = int(EPSGcode)
+    
+            DataIO.writeGeotiff(
+                values,
+                saveAs + ".tiff",
+                gridObject.EPSGcode,
+                gridObject.limits[0],
+                gridObject.limits[1],
+                gridObject.limits[2],
+                gridObject.limits[3],
+                1,
+                dataType="grid",
+            )
+    
+            if gridObject.EPSGcode != EPSGcode:
+        
+                print(
+                    "Output EPSG code differ from input grid definition."
+                    "The geotiff will be reprojected"
+                )
+                DataIO.gdalWarp(
+                    saveAs + "EPSG" + str(EPSGcode) + ".tiff",
+                    saveAs + ".tiff",
+                    int(EPSGcode),
+                )
+                print(
+                    "New file written:"
+                    + saveAs
+                    + "_EPSG"
+                    + str(int(EPSGcode))
+                    + "_GRID.tiff"
+                )
+            
+        plotSave(
+            gridObject,
+            gridObject.values,
+            None,
+            None,
+            90,
+            15,
+            1,
+            0,
+            1,
+            None,
+            "RdBu_r",
+            units,
+            None,
+            None,
+            "HistEqualized",
+            "",
+            EPSGcode,
+            SaveGrid,
+            dpi=200,
+            )
+
         return gridObject
+
+            
     
     assert isinstance(
         gridObject, DataIO.dataGrid
@@ -2819,21 +2855,21 @@ def plotWidget(
     )
     SaveGrid.observe(saveIt)
 
-  for key in omit:
-        locals()[key].disabled = True
+    for key in omit:
+            locals()[key].disabled = True
     out = widgets.interactive(
-        plotWidget,
-        ColorMap=ColorMap,
-        EPSGcode=EPSGcode,
-        inc=inc,
-        dec=dec,
-        ndv=ndv,
-        GetIncDec=GetIncDec,
-        applyRTP=applyRTP,
-        saveAs=saveAs,
-        SaveGrid=SaveGrid,
-        units=units,
-    )
+            plotWidget,
+            ColorMap=ColorMap,
+            EPSGcode=EPSGcode,
+            inc=inc,
+            dec=dec,
+            ndv=ndv,
+            GetIncDec=GetIncDec,
+            applyRTP=applyRTP,
+            saveAs=saveAs,
+            SaveGrid=SaveGrid,
+            units=units
+        )
 
     return out
 
