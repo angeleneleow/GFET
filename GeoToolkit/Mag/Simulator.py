@@ -144,7 +144,8 @@ def cmaps():
         "bone",
         "hsv",
         "nipy_spectral",
-        "geosoft"
+        "geosoft",
+        "Spectral_r"
     ]
 
 
@@ -1582,7 +1583,7 @@ def dataHillsideWidget(
 
 def gridFiltersWidget(
     gridObject,
-    gridFilter="derivativeX",
+    gridFilter="TDXderivative",
     ColorTransp=0.9,
     HSTransp=0.5,
     EPSGcode=None,
@@ -1825,7 +1826,7 @@ def gridFiltersWidget(
     Filters.observe(labelUpdate)
     UpDist = widgets.FloatSlider(
         min=0,
-        max=200,
+        max=5000,
         step=10,
         value=0,
         continuous_update=False,
@@ -2111,15 +2112,15 @@ def gridTilt2Depth(
         options=cmaps(), value=ColorMap, description="ColorMap", disabled=False
     )
     Filters = widgets.Dropdown(
-        options=["TMI", "tiltAngle"],
+        options=["TMI", "tiltAngle","TDXderivative"],
         value=gridFilter,
         description="Grid Filters",
         disabled=False,
     )
     UpDist = widgets.FloatSlider(
         min=0,
-        max=200,
-        step=10,
+        max=5000,
+        step=100,
         value=0,
         continuous_update=False,
         description="UpC Height",
@@ -2134,6 +2135,7 @@ def gridTilt2Depth(
     )
 
     SaveGrid.observe(saveIt)
+
     SaveShape = widgets.ToggleButton(
         value=False,
         description="Export Shapefile",
@@ -2144,6 +2146,7 @@ def gridTilt2Depth(
     )
 
     SaveShape.observe(saveShape)
+
     SaveCSV = widgets.ToggleButton(
         value=False,
         description="Export CSV",
@@ -2605,7 +2608,7 @@ def dataGriddingWidget(
 def dataGridGeoref(
     gridObject,
     EPSGcode=np.nan,
-    saveAs="./Output/MyGeoTiff",
+    saveAs="./Output/TMI2RTP",
     shapeFile=None,
     inc=np.nan,
     dec=np.nan,
@@ -2613,99 +2616,100 @@ def dataGridGeoref(
     applyRTP=False,
     omit=[],
     units="RTP",
+    omit=[]
 ):
 
-    values = gridObject.values.copy()
+values = gridObject.values.copy()
 
-    def plotWidget(
-        ColorMap, EPSGcode, GetIncDec, inc, dec, ndv, applyRTP, units, saveAs, SaveGrid
-    ):
+def plotWidget(
+    ColorMap,
+    EPSGcode, 
+    GetIncDec, 
+    inc, 
+    dec, 
+    ndv,  
+    units,
+    applyRTP,
+    saveAs, 
+    SaveGrid
+):
 
-        gridObject._values = values
+    gridObject._values = values
 
-        if ~np.isnan(ndv):
-            gridObject._values[values == ndv] = np.nan
+    if ~np.isnan(ndv):
+        gridObject._values[values == ndv] = np.nan
 
-        if not np.isnan(EPSGcode):
+    if not np.isnan(EPSGcode):
+        gridObject.EPSGcode = int(EPSGcode)
+
+    gridObject.inc, gridObject.dec = inc, dec
+
+    gridObject.setRTP(applyRTP)
+
+    if SaveGrid:
+
+        if np.isnan(EPSGcode) and getattr(gridObject, "EPSGcode", None) is None:
+            print("Need to assign an EPSGcode before exporting")
+            return
+    
+        elif getattr(gridObject, "EPSGcode", None) is None:
             gridObject.EPSGcode = int(EPSGcode)
-
-        gridObject.inc, gridObject.dec = inc, dec
-
-        gridObject.setRTP(applyRTP)
-
-        if SaveGrid:
-
-            if np.isnan(EPSGcode) and getattr(gridObject, "EPSGcode", None) is None:
-                print("Need to assign an EPSGcode before exporting")
-                return
     
-            elif getattr(gridObject, "EPSGcode", None) is None:
-                gridObject.EPSGcode = int(EPSGcode)
-    
-            DataIO.writeGeotiff(
-                values,
-                saveAs + ".tiff",
-                gridObject.EPSGcode,
-                gridObject.limits[0],
-                gridObject.limits[1],
-                gridObject.limits[2],
-                gridObject.limits[3],
-                1,
-                dataType="grid",
-            )
-    
-            if gridObject.EPSGcode != EPSGcode:
-    
-                print(
-                    "Output EPSG code differ from input grid definition."
-                    "The geotiff will be reprojected"
-                )
-                DataIO.gdalWarp(
-                    saveAs + "EPSG" + str(EPSGcode) + ".tiff",
-                    saveAs + ".tiff",
-                    int(EPSGcode),
-                )
-                print(
-                    "New file written:"
-                    + saveAs
-                    + "_EPSG"
-                    + str(int(EPSGcode))
-                    + "_GRID.tiff"
-                )
-                return gridObject
-
-        plotSave(
-            gridObject,
+        DataIO.writeGeotiff(
             values,
-            None,
-            None,
-            90,
-            15,
+            saveAs + ".tiff",
+            gridObject.EPSGcode,
+            gridObject.limits[0],
+            gridObject.limits[1],
+            gridObject.limits[2],
+            gridObject.limits[3],
             1,
-            0,
-            1,
-            None,
-            "RdBu_r",
-            units,
-            None,
-            None,
-            "HistEqualized",
-            "",
-            EPSGcode,
-            SaveGrid,
-            dpi=200,
+            dataType="grid",
         )
-
     
-
-   # fig, ax = plt.figure(), plt.subplot()
-   # plt.gca().set_visible(False)
-   # cbar = plt.colorbar(im, fraction=0.02)
-   # cbar.set_label(Filters + " " + units()[Filters])
-   # plt.savefig(saveAs + "Colorbar.png", dpi=dpi, bbox_inches="tight")
-
+        if gridObject.EPSGcode != EPSGcode:
     
+            print(
+                "Output EPSG code differ from input grid definition."
+                "The geotiff will be reprojected"
+            )
+            DataIO.gdalWarp(
+                saveAs + "EPSG" + str(EPSGcode) + ".tiff",
+                saveAs + ".tiff",
+                int(EPSGcode),
+            )
+            print(
+                "New file written:"
+                + saveAs
+                + "_EPSG"
+                + str(int(EPSGcode))
+                + "_GRID.tiff"
+            )
+            
 
+    plotSave(
+        gridObject,
+        gridObject.values,
+        None,
+        None,
+        90,
+        15,
+        1,
+        0,
+        1,
+        None,
+        "RdBu_r",
+        units,
+        None,
+        None,
+        "HistEqualized",
+        "",
+        EPSGcode,
+        SaveGrid,
+        dpi=200,
+        )
+        return gridObject
+    
     assert isinstance(
         gridObject, DataIO.dataGrid
     ), "Only implemented for objects of class DataIO.dataGrid"
@@ -2807,7 +2811,7 @@ def dataGridGeoref(
 
     SaveGrid = widgets.ToggleButton(
         value=False,
-        description="Export GeoTiff",
+        description="Export Grid",
         disabled=False,
         button_style="",
         tooltip="Write file",
@@ -2815,7 +2819,7 @@ def dataGridGeoref(
     )
     SaveGrid.observe(saveIt)
 
-    for key in omit:
+  for key in omit:
         locals()[key].disabled = True
     out = widgets.interactive(
         plotWidget,
