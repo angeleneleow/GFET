@@ -21,7 +21,7 @@ import scipy.sparse as sp
 from scipy.spatial import cKDTree
 from scipy.interpolate.interpnd import _ndim_coords_from_arrays
 from matplotlib.colors import LightSource, Normalize
-from GeoToolkit.graphics import graphics
+from GeoToolkit.graphics import graphics, colors
 from matplotlib.ticker import FormatStrFormatter
 import matplotlib as mpl
 from skimage import exposure
@@ -145,7 +145,7 @@ def cmaps():
         "hsv",
         "nipy_spectral",
         "geosoft",
-        "Spectral_r"
+        "Spectral_r",
     ]
 
 
@@ -905,7 +905,9 @@ class MidPointNorm(Normalize):
 
             # First scale to -1 to 1 range, than to from 0 to 1.
             resdat -= midpoint
-            resdat[resdat > 0] /= abs(vmax - midpoint) # resdat[resdat > 0]= resdat[resdat > 0] / abs(vmax - midpoint)
+            resdat[resdat > 0] /= abs(
+                vmax - midpoint
+            )  # resdat[resdat > 0]= resdat[resdat > 0] / abs(vmax - midpoint)
             resdat[resdat < 0] /= abs(vmin - midpoint)
 
             resdat /= 2.0
@@ -943,6 +945,7 @@ def plotDataHillside(
     axs=None,
     fill=True,
     contours=None,
+    filledContour=None,
     vmin=None,
     vmax=None,
     resolution=25,
@@ -1004,7 +1007,7 @@ def plotDataHillside(
 
         X, Y, d_grid = x, y, z
 
-    im, CS = [], []
+    im, CS, CSfilled = [], [], []
     if axs is None:
         axs = plt.subplot()
 
@@ -1038,6 +1041,7 @@ def plotDataHillside(
             extent=extent,
             origin="lower",
         )
+      
 
         if np.all([alpha != 1, alphaHS != 0]):
 
@@ -1048,6 +1052,8 @@ def plotDataHillside(
                 extent=extent,
                 origin="lower",
             )
+
+    CS,CSfilled = [], []
 
     if contours is not None:
         # clevels = np.round(np.linspace(vmin, vmax, contours) * 1e-1) * 1e+1
@@ -1064,6 +1070,11 @@ def plotDataHillside(
         )
 
         # plt.clabel(CS, inline=1, fontsize=5, fmt='%i')
+
+    if filledContour is not None:
+        CSfilled = axs.contour(
+            X, Y, d_grid, 1, levels=[filledContour], colors="r", linewidths=5.0
+        )
 
     if scatterData is not None:
         plt.scatter(
@@ -1082,7 +1093,7 @@ def plotDataHillside(
     axs.set_xlim([extent[0], extent[1]])
     axs.set_ylim([extent[2], extent[3]])
     axs.set_aspect("auto")
-    return X, Y, d_grid, im, CS
+    return X, Y, d_grid, im, CS, CSfilled
 
 
 def plotData2D(
@@ -1093,6 +1104,7 @@ def plotData2D(
     vmin=None,
     vmax=None,
     contours=0,
+    filledContour=None,
     fig=None,
     ax=None,
     colorbar=True,
@@ -1200,6 +1212,11 @@ def plotData2D(
                 X, Y, d_grid, contours, levels=clevels, colors="k", linewidths=0.5
             )
             # plt.clabel(CS, inline=1, fontsize=5, fmt='%i')
+
+        if filledContour is not None:
+            CSfilled = axs.contourf(
+                X, Y, d_grid, contours, levels=clevels, colors="k", linewidths=0.5
+            )
 
     if title is not None:
         plt.title(title)
@@ -1316,6 +1333,7 @@ def dataHillsideWidget(
     ShapeFileName="./Output/Contours",
     dpi=300,
     Contours=None,
+    filledContour=None,
     scatterData=None,
     shapeFile=None,
     omit=[],
@@ -1333,6 +1351,7 @@ def dataHillsideWidget(
         saveAs,
         SaveGrid,
         Contours,
+        filledContour,
         ShapeFileName,
         SaveShape,
         EPSGcode,
@@ -1387,7 +1406,7 @@ def dataHillsideWidget(
         else:
             Contours = None
 
-        X, Y, data, im, CS = plotSave(
+        X, Y, data, im, CS, CSfilled = plotSave(
             gridObject,
             gridObject.values,
             scatterData,
@@ -1398,6 +1417,7 @@ def dataHillsideWidget(
             HSTransp,
             vScale,
             Contours,
+            filledContour,
             ColorMap,
             units,
             VminVmax[0],
@@ -1409,13 +1429,27 @@ def dataHillsideWidget(
             dpi=dpi,
         )
 
-        if Contours is not "":
+        if CS is not None:
 
             if SaveShape:
 
                 # Export to shapefile
                 DataIO.exportShapefile(
                     CS,
+                    [],
+                    EPSGcode=EPSGcode,
+                    saveAs=ShapeFileName,
+                    label=units,
+                    attType="float",
+                )
+
+        if CSfilled is not None:
+
+            if SaveShape:
+
+                # Export to shapefile
+                DataIO.exportShapefile(
+                    CSfilled,
                     [],
                     EPSGcode=EPSGcode,
                     saveAs=ShapeFileName,
@@ -1481,20 +1515,12 @@ def dataHillsideWidget(
         description="vScale",
     )
 
-    # Contours = widgets.IntSlider(
-    #     min=0, max=100, step=2, value=contours, continuous_update=False,
-    #     description='Contours'
-    #     )
-
     Contours = widgets.Text(
         value=Contours, description="Contours", disabled=False, continuous_update=False
     )
 
     ColorMap = widgets.Dropdown(
-        options=cmaps(), 
-        value='Spectral_r',
-        description='ColorMap',
-        disabled=False,
+        options=cmaps(), value="Spectral_r", description="ColorMap", disabled=False
     )
 
     vmin = data[~np.isnan(data)].min()
@@ -1510,6 +1536,15 @@ def dataHillsideWidget(
         orientation="horizontal",
         readout=True,
         readout_format=".1f",
+    )
+
+    filledContour = widgets.FloatSlider(
+        min=vmin,
+        max=vmax,
+        step=5.0,
+        value=filledContour,
+        continuous_update=False,
+        description="Contours",
     )
 
     Equalize = widgets.Dropdown(
@@ -1561,6 +1596,7 @@ def dataHillsideWidget(
         "saveAs": saveAs,
         "SaveGrid": SaveGrid,
         "Contours": Contours,
+        "filledContour": filledContour,
         "ShapeFileName": ShapeFileName,
         "SaveShape": SaveShape,
         "EPSGcode": EPSGcode,
@@ -1591,11 +1627,12 @@ def gridFiltersWidget(
     scatterData=None,
     inc=np.nan,
     dec=np.nan,
-    Contours=None,
+    Contours="0",
+    filledContour=None,
     SunAzimuth=270,
     SunAngle=15,
     vScale=5.0,
-    ColorMap="geosoft",
+    ColorMap="Spectral_r",
     shapeFile=None,
     saveAs="./Output/MyGeoTiff_" + "derivativeX",
     ShapeFileName="./Output/Contours_" + "derivativeX",
@@ -1620,7 +1657,6 @@ def gridFiltersWidget(
         Filters,
         UpDist,
         ColorMap,
-        VminVmax,
         Equalize,
         ColorTransp,
         SunAzimuth,
@@ -1629,11 +1665,11 @@ def gridFiltersWidget(
         vScale,
         EPSGcode,
         Contours,
+        filledContour,
         saveAs,
         SaveGrid,
         ShapeFileName,
         SaveShape,
-       
     ):
 
         # If changed upward distance, reset the FFT
@@ -1650,8 +1686,14 @@ def gridFiltersWidget(
         else:
             data = getattr(gridObject, "{}".format(Filters))
 
-        ind = ~np.isnan(data)
+        # if filledContour is not None:
+        #     data = gridObject.upwardContinuation(z=UpDist)
+        #     gridObject._gridPadded = None
+        #     gridObject._gridFFT = None
 
+
+
+        ind = ~np.isnan(data)
         vmin, vmax = np.percentile(data[ind], 5), np.percentile(data[ind], 95)
 
         # vScale *= (
@@ -1692,7 +1734,7 @@ def gridFiltersWidget(
                     + "_GRID.tiff"
                 )
 
-                # Parse contour values
+        # Parse contour values
         if Contours is not "":
             vals = re.split(",", Contours)
             cntrs = []
@@ -1707,8 +1749,8 @@ def gridFiltersWidget(
             Contours = np.unique(np.sort(np.hstack(cntrs)))
         else:
             Contours = None
-
-        X, Y, data, im, CS = plotSave(
+        
+        X, Y, data, im, CS, CSfilled = plotSave(
             gridObject,
             data,
             scatterData,
@@ -1719,6 +1761,7 @@ def gridFiltersWidget(
             HSTransp,
             vScale,
             Contours,
+            filledContour,
             ColorMap,
             Filters,
             vmin,
@@ -1730,7 +1773,7 @@ def gridFiltersWidget(
             dpi=dpi,
         )
 
-        if Contours is not "":
+        if CS is not None:
 
             if SaveShape:
 
@@ -1744,10 +1787,26 @@ def gridFiltersWidget(
                     attType="float",
                 )
 
+        if CSfilled is not None:
+
+            if SaveShape:
+
+                # Export to shapefile
+                DataIO.exportShapefile(
+                    CSfilled,
+                    [],
+                    EPSGcode=EPSGcode,
+                    saveAs=ShapeFileName,
+                    label=units,
+                    attType="float",
+                )
+
     assert isinstance(
         gridObject, DataIO.dataGrid
     ), "Only implemented for objects of class DataIO.dataGrid"
+    data = gridObject.values
 
+    # Trigger the save and uncheck button
     def saveIt(_):
         if SaveGrid.value:
             SaveGrid.value = False
@@ -1758,6 +1817,9 @@ def gridFiltersWidget(
         if SaveShape.value:
             SaveShape.value = False
             print("Shapefile saved as: " + ShapeFileName.value)
+
+    # def saveEdgeDetection(_):
+    #     if SaveShape.value
 
     def labelUpdate(_):
 
@@ -1807,9 +1869,23 @@ def gridFiltersWidget(
     ColorMap = widgets.Dropdown(
         options=cmaps(), value=ColorMap, description="ColorMap", disabled=False
     )
+
     Contours = widgets.Text(
-        value=Contours, description="Contours", disabled=False, continuous_update=False
+        value=Contours, description="Edge Detected zero contour boundary", disabled=False, continuous_update=False
     )
+
+    # vmin, vmax = np.percentile(data[ind], 5), np.percentile(data[ind], 95)
+    vmin = data[~np.isnan(data)].min()
+    vmax = data[~np.isnan(data)].max()
+    filledContour = widgets.FloatSlider(
+        min=vmin,
+        max=vmax,
+        step=5.0,
+        value=filledContour,
+        continuous_update=False,
+        description="Filled Contours",
+    )
+
     Filters = widgets.Dropdown(
         options=[
             "TMI",
@@ -1828,8 +1904,6 @@ def gridFiltersWidget(
 
     Filters.observe(labelUpdate)
 
-    )
-
     Equalize = widgets.Dropdown(
         options=["Linear", "HistEqualized"],
         value="HistEqualized",
@@ -1837,14 +1911,14 @@ def gridFiltersWidget(
         disabled=False,
     )
 
-  UpDist = widgets.FloatSlider(
+    UpDist = widgets.FloatSlider(
         min=0,
         max=5000,
         step=10,
         value=0,
         continuous_update=False,
         description="UpC Height",
-  )
+    )
 
     SaveGrid = widgets.ToggleButton(
         value=False,
@@ -1865,7 +1939,7 @@ def gridFiltersWidget(
 
     SaveShape = widgets.ToggleButton(
         value=False,
-        description="Export Shapefile",
+        description="Edge Detection",
         disabled=False,
         button_style="",
         tooltip="Description",
@@ -1891,6 +1965,7 @@ def gridFiltersWidget(
         "saveAs": saveAs,
         "SaveGrid": SaveGrid,
         "Contours": Contours,
+        "filledContour":filledContour,
         "ShapeFileName": ShapeFileName,
         "SaveShape": SaveShape,
         "EPSGcode": EPSGcode,
@@ -1965,6 +2040,7 @@ def gridTilt2Depth(
         UpDist,
         ContourColor,
         ContourSize,
+        filledContour,
         GridFileName,
         EPSGcode,
         SaveGrid,
@@ -2053,6 +2129,7 @@ def gridTilt2Depth(
             HSTransp,
             vScale,
             None,
+            None,
             ColorMap,
             Filters,
             vmin,
@@ -2124,15 +2201,27 @@ def gridTilt2Depth(
         description="V scale",
         continuous_update=False,
     )
+
+    filledContour = widgets.FloatSlider(
+        min=vmin,
+        max=vmax,
+        step=5.0,
+        value=filledContour,
+        continuous_update=False,
+        description="Filled Contours",
+    )
+
     ColorMap = widgets.Dropdown(
         options=cmaps(), value=ColorMap, description="ColorMap", disabled=False
     )
+
     Filters = widgets.Dropdown(
-        options=["TMI", "tiltAngle","TDXderivative"],
+        options=["TMI", "tiltAngle", "TDXderivative"],
         value=gridFilter,
         description="Grid Filters",
         disabled=False,
     )
+
     UpDist = widgets.FloatSlider(
         min=0,
         max=5000,
@@ -2210,6 +2299,7 @@ def gridTilt2Depth(
         "UpDist": UpDist,
         "ContourColor": ContourColor,
         "ContourSize": ContourSize,
+        "FilledContour":filledContour,
         "GridFileName": GridFileName,
         "EPSGcode": EPSGcode,
         "SaveGrid": SaveGrid,
@@ -2507,6 +2597,7 @@ def dataGriddingWidget(
             0,
             0,
             None,
+            None,
             ColorMap,
             units,
             None,
@@ -2573,11 +2664,8 @@ def dataGriddingWidget(
         disabled=False,
     )
     ColorMap = widgets.Dropdown(
-        options=cmaps(),
-        value='Spectral_r',
-        description='ColorMap',
-        disabled=False,
-        )
+        options=cmaps(), value="Spectral_r", description="ColorMap", disabled=False
+    )
     EPSGcode = widgets.FloatText(
         value=EPSGcode, description="EPSG code:", disabled=False
     )
@@ -2632,22 +2720,13 @@ def dataGridGeoref(
     ndv=np.nan,
     applyRTP=False,
     units="RTP",
-    omit=[]
+    omit=[],
 ):
 
     values = gridObject.values.copy()
 
     def plotWidget(
-        ColorMap,
-        EPSGcode, 
-        GetIncDec, 
-        inc, 
-        dec, 
-        ndv,  
-        units,
-        applyRTP,
-        saveAs, 
-        SaveGrid
+        ColorMap, EPSGcode, GetIncDec, inc, dec, ndv, units, applyRTP, saveAs, SaveGrid
     ):
 
         gridObject._values = values
@@ -2667,10 +2746,10 @@ def dataGridGeoref(
             if np.isnan(EPSGcode) and getattr(gridObject, "EPSGcode", None) is None:
                 print("Need to assign an EPSGcode before exporting")
                 return
-    
+
             elif getattr(gridObject, "EPSGcode", None) is None:
                 gridObject.EPSGcode = int(EPSGcode)
-    
+
             DataIO.writeGeotiff(
                 values,
                 saveAs + ".tiff",
@@ -2682,9 +2761,9 @@ def dataGridGeoref(
                 1,
                 dataType="grid",
             )
-    
+
             if gridObject.EPSGcode != EPSGcode:
-        
+
                 print(
                     "Output EPSG code differ from input grid definition."
                     "The geotiff will be reprojected"
@@ -2701,7 +2780,7 @@ def dataGridGeoref(
                     + str(int(EPSGcode))
                     + "_GRID.tiff"
                 )
-            
+
         plotSave(
             gridObject,
             gridObject.values,
@@ -2713,6 +2792,7 @@ def dataGridGeoref(
             0,
             1,
             None,
+            None,
             "RdBu_r",
             units,
             None,
@@ -2722,12 +2802,10 @@ def dataGridGeoref(
             EPSGcode,
             SaveGrid,
             dpi=200,
-            )
+        )
 
         return gridObject
 
-            
-    
     assert isinstance(
         gridObject, DataIO.dataGrid
     ), "Only implemented for objects of class DataIO.dataGrid"
@@ -2768,11 +2846,8 @@ def dataGridGeoref(
             print("Image saved as: " + saveAs.value)
 
     ColorMap = widgets.Dropdown(
-        options=cmaps(),
-        value='Spectral_r',
-        description='ColorMap',
-        disabled=False,
-        )
+        options=cmaps(), value="Spectral_r", description="ColorMap", disabled=False
+    )
 
     if gridObject.EPSGcode is not None:
         EPSGcode = gridObject.EPSGcode
@@ -2804,7 +2879,7 @@ def dataGridGeoref(
         ndv = np.nan
 
     ndv = widgets.FloatText(value=ndv, description="No-data-Value", disabled=False)
-    
+
     GetIncDec = widgets.ToggleButton(
         value=False,
         description="Fetch Inc/Dec",
@@ -2838,20 +2913,20 @@ def dataGridGeoref(
     SaveGrid.observe(saveIt)
 
     for key in omit:
-            locals()[key].disabled = True
+        locals()[key].disabled = True
     out = widgets.interactive(
-            plotWidget,
-            ColorMap=ColorMap,
-            EPSGcode=EPSGcode,
-            inc=inc,
-            dec=dec,
-            ndv=ndv,
-            GetIncDec=GetIncDec,
-            applyRTP=applyRTP,
-            saveAs=saveAs,
-            SaveGrid=SaveGrid,
-            units=units
-        )
+        plotWidget,
+        ColorMap=ColorMap,
+        EPSGcode=EPSGcode,
+        inc=inc,
+        dec=dec,
+        ndv=ndv,
+        GetIncDec=GetIncDec,
+        applyRTP=applyRTP,
+        saveAs=saveAs,
+        SaveGrid=SaveGrid,
+        units=units,
+    )
 
     return out
 
@@ -3062,6 +3137,7 @@ def plotSave(
     HSTransp,
     vScale,
     Contours,
+    filledContour,
     ColorMap,
     Filters,
     vmin,
@@ -3086,7 +3162,7 @@ def plotSave(
         axs = plt.subplot()
 
     # Add shading
-    X, Y, data, im, CS = plotDataHillside(
+    X, Y, data, im, CS, CSfilled = plotDataHillside(
         gridObject.hx,
         gridObject.hy,
         data,
@@ -3097,6 +3173,7 @@ def plotSave(
         vmin=vmin,
         vmax=vmax,
         contours=Contours,
+        filledContour=filledContour,
         alpha=ColorTransp,
         alphaHS=HSTransp,
         ve=vScale,
@@ -3182,329 +3259,5 @@ def plotSave(
             )
             cb.set_label("Depth (m)", size=12)
 
-    return X, Y, data, im, CS
+    return X, Y, data, im, CS, CSfilled
 
-def MagContourWidget(
-    gridObject,
-    gridFilter="TDXderivative",
-    ColorTransp=0.9,
-    HSTransp=0.5,
-    EPSGcode=None,
-    dpi=300,
-    scatterData=None,
-    inc=np.nan,
-    dec=np.nan,
-    SunAzimuth=270,
-    SunAngle=15,
-    vScale=5.0,
-    magContour=5.0,
-    ColorMap="RdBu_r",
-    shapeFile=None,
-    saveAs="./Output/MyGeoTiff_" + "derivativeX",
-    ShapeFileName="./Output/Contours_" + "derivativeX",
-    omit=[],
-):
-
-    gridProps = [
-        "valuesFilledUC",
-        "valuesFilled",
-        "derivativeX",
-        "derivativeY",
-        "firstVertical",
-        "totalHorizontal",
-        "tiltAngle",
-        "analyticSignal",
-        "TDXderivative",
-        "gridFFT",
-        "gridPadded",
-    ]
-
-    def plotWidget(
-        Filters,
-        UpDist,
-        Equalize,
-        ColorMap,
-        ColorTransp,
-        SunAzimuth,
-        SunAngle,
-        HSTransp,
-        vScale,
-        Contour,
-        magContour,
-        EPSGcode,
-        saveAs,
-        SaveGrid,
-        ShapeFileName,
-        SaveShape,
-       
-    ):
-
-        # If changed upward distance, reset the FFT
-        if UpDist != gridObject.heightUC:
-            for prop in gridProps:
-                setattr(gridObject, "_{}".format(prop), None)
-
-            data = gridObject.upwardContinuation(z=UpDist)
-            gridObject._gridPadded = None
-            gridObject._gridFFT = None
-        else:
-            data = getattr(gridObject, "{}".format(Filters))
-
-        ind = ~np.isnan(data) 
-
-        magmin, magmax = np.percentile(data[ind], 5), np.percentile(data[ind], 95)
-
-        # vScale *= (
-        #     np.abs(gridObject.values[ind].max() - gridObject.values[ind].min()) *
-        #     np.abs(data[ind].max() - data[ind].min())
-        # )
-
-        if SaveGrid:
-            lims = gridObject.limits
-            DataIO.writeGeotiff(
-                data,
-                saveAs + "_GRID.tiff",
-                gridObject.EPSGcode,
-                lims[0],
-                lims[1],
-                lims[2],
-                lims[3],
-                1,
-                dataType="grid",
-            )
-
-            if gridObject.EPSGcode != EPSGcode:
-
-                print(
-                    "Output EPSG code differ from input grid definition."
-                    "The geotiff will be reprojected"
-                )
-                DataIO.gdalWarp(
-                    saveAs + "_EPSG" + str(int(EPSGcode)) + "_GRID.tiff",
-                    saveAs + "_GRID.tiff",
-                    int(EPSGcode),
-                )
-                print(
-                    "New file written:"
-                    + saveAs
-                    + "_EPSG"
-                    + str(int(EPSGcode))
-                    + "_GRID.tiff"
-                )
-
-        X, Y, data, im, CS = plotSave(
-            gridObject,
-            data,
-            scatterData,
-            shapeFile,
-            SunAzimuth,
-            SunAngle,
-            ColorTransp,
-            HSTransp,
-            vScale,
-            Contours,
-            ColorMap,
-            Filters,
-            vmin,
-            vmax,
-            Equalize,
-            saveAs,
-            EPSGcode,
-            SaveGrid,
-            dpi=dpi,
-        )
-
-        if magContour is not None:
-
-            if SaveShape:
-
-                # Export to shapefile
-                DataIO.exportShapefile(
-                    CS,
-                    [],
-                    EPSGcode=EPSGcode,
-                    saveAs=ShapeFileName,
-                    label=magContour,
-                    attType="float",
-                )
-
-    assert isinstance(
-        gridObject, DataIO.dataGrid
-    ), "Only implemented for objects of class DataIO.dataGrid"
-    # Trigger the save and uncheck button
-    def saveIt(_):
-        if SaveGrid.value:
-            SaveGrid.value = False
-            print("Image saved as: " + saveAs.value)
-
-    def saveShape(_):
-
-        if SaveShape.value:
-            SaveShape.value = False
-            print("Shapefile saved as: " + ShapeFileName.value)
-
-    def labelUpdate(_):
-
-        saveAs.value = "./Output/MyGeoTiff_" + magContour
-        ShapeFileName.value = "./Output/Contours_" + magContour
-
-    SunAzimuth = widgets.FloatSlider(
-        min=0,
-        max=360,
-        step=5,
-        value=SunAzimuth,
-        continuous_update=False,
-        description="Sun Azimuth",
-    )
-    SunAngle = widgets.FloatSlider(
-        min=0,
-        max=90,
-        step=5,
-        value=SunAngle,
-        description="Sun Angle",
-        continuous_update=False,
-    )
-    ColorTransp = widgets.FloatSlider(
-        min=0,
-        max=1,
-        step=0.05,
-        value=ColorTransp,
-        description="ColorTransp",
-        continuous_update=False,
-    )
-    HSTransp = widgets.FloatSlider(
-        min=0,
-        max=1,
-        step=0.05,
-        value=HSTransp,
-        description="Sun Transp",
-        continuous_update=False,
-    )
-    vScale = widgets.FloatSlider(
-        min=1,
-        max=10,
-        step=2.0,
-        value=vScale,
-        description="V scale",
-        continuous_update=False,
-    )
-
-    data = gridObject.values
-    
-    magHighContour = widgets.FloatRangeSlider(
-        min=vmin,
-        max=vmax/2.0,
-        step=1.0,
-        value=0,
-        description="Mag High Contour",
-        disabled=False,
-        continuous_update=False
-    )
-
-    magContour.observe(labelUpdate)
-
-    Equalize = widgets.Dropdown(
-        options=["Linear", "HistEqualized"],
-        value="HistEqualized",
-        description="Color Normalization",
-        disabled=False,
-    )
-
-    ColorMap = widgets.Dropdown(
-        options=cmaps(), value=ColorMap, description="ColorMap", disabled=False
-    )
-
-    Filters = widgets.Dropdown(
-        options=[
-            "TMI",
-            "derivativeX",
-            "derivativeY",
-            "firstVertical",
-            "totalHorizontal",
-            "tiltAngle",
-            "analyticSignal",
-            "TDXderivative",
-        ],
-        value=gridFilter,
-        description="Grid Filters",
-        disabled=False,
-    )
-
-    UpDist = widgets.FloatSlider(
-        min=0,
-        max=5000,
-        step=10,
-        value=0,
-        continuous_update=False,
-        description="UpC Height",
-    )
-    SaveGrid = widgets.ToggleButton(
-        value=False,
-        description="Export GeoTiff",
-        disabled=False,
-        button_style="",
-        tooltip="Description",
-        icon="check",
-    )
-
-    SaveGrid.observe(saveIt)
-
-    EPSGcode = widgets.FloatText(
-        value=gridObject.EPSGcode, description="EPSG code:", disabled=False
-    )
-
-    saveAs = widgets.Text(value=saveAs, description="Save as:", disabled=False)
-
-    SaveShape = widgets.ToggleButton(
-        value=False,
-        description="Export Shapefile",
-        disabled=False,
-        button_style="",
-        tooltip="Description",
-        icon="check",
-    )
-
-    SaveShape.observe(saveShape)
-
-    ShapeFileName = widgets.Text(
-        value=ShapeFileName, description="Save as:", disabled=False
-    )
-
-    keys = {
-        "Filters": Filters,
-        "UpDist": UpDist,
-        "ColorMap": ColorMap,
-        "Equalize": Equalize,
-        "ColorTransp": ColorTransp,
-        "SunAzimuth": SunAzimuth,
-        "SunAngle": SunAngle,
-        "HSTransp": HSTransp,
-        "vScale": vScale,
-        "saveAs": saveAs,
-        "SaveGrid": SaveGrid,
-        "Contours": Contours,
-        "magContour": magContour,
-        "ShapeFileName": ShapeFileName,
-        "SaveShape": SaveShape,
-        "EPSGcode": EPSGcode,
-    }
-
-    widgList = []
-    for key in list(keys.keys()):
-
-        if key not in omit:
-            widgList += [keys[key]]
-
-    out = widgets.interactive_output(plotWidget, keys)
-
-    left = widgets.VBox(
-        widgList, layout=Layout(width="35%", height="600px", margin="60px 0px 0px 0px")
-    )
-
-    image = widgets.VBox(
-        [out], layout=Layout(width="65%", height="600px", margin="0px 0px 0px 0px")
-    )
-
-    return widgets.HBox([left, out])
-
-    return out
