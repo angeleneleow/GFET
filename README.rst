@@ -37,4 +37,4 @@ To install from source, you can
 
 License
 
-GFET is licensed under the `MIT license <https://github.com/simpeg/geoana/blob/master/LICENSE>`_ .
+GFET is licensed under the `MIT license <https://github.com/angeleneleow/GFET/blob/master/LICENSE>`_ .
