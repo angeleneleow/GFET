@@ -1,6 +1,9 @@
 import numpy as np
 import scipy as sp
-from . import (Simulator, MathUtils)
+import sys
+
+sys.path.append("../")
+from GeoToolkit.Mag import Simulator, MathUtils
 from scipy.spatial import cKDTree
 from scipy import ndimage
 from matplotlib.contour import QuadContourSet
@@ -17,13 +20,22 @@ from download import download
 import ipywidgets as widgets
 import shapefile
 import zipfile
-
+import easygui as g
+from easygui import *
 
 gridProps = [
-    'valuesFilledUC', 'valuesFilled',
-    'derivativeX', 'derivativeY', 'firstVertical',
-    'totalHorizontal', 'tiltAngle', 'analyticSignal',
-    'TDXderivative', 'gridFFT', 'gridPadded', 'RTP'
+    "valuesFilledUC",
+    "valuesFilled",
+    "derivativeX",
+    "derivativeY",
+    "firstVertical",
+    "totalHorizontal",
+    "tiltAngle",
+    "analyticSignal",
+    "TDXderivative",
+    "gridFFT",
+    "gridPadded",
+    "RTP",
 ]
 
 
@@ -33,9 +45,9 @@ class dataGrid(object):
 
     """
 
-    x0, y0 = 0., 0.
+    x0, y0 = 0.0, 0.0
     nx, ny = 1, 1
-    dx, dy = 1., 1.
+    dx, dy = 1.0, 1.0
     values = None
     valuesFilled = None
     valuesFilledUC = None
@@ -56,7 +68,7 @@ class dataGrid(object):
     def set_gaussian_filter(self, sigma):
 
         for prop in gridProps:
-            setattr(self, '_{}'.format(prop), None)
+            setattr(self, "_{}".format(prop), None)
 
         self.fourier_gaussian = sigma / self.dx
 
@@ -67,11 +79,8 @@ class dataGrid(object):
         """
             Cell center location along x-axis
         """
-        if getattr(self, '_hx', None) is None:
-            self._hx = (
-                np.asarray(range(self.nx)) *
-                self.dx + self.x0 + self.dx/2
-            )
+        if getattr(self, "_hx", None) is None:
+            self._hx = np.asarray(range(self.nx)) * self.dx + self.x0 + self.dx / 2
 
         return self._hx
 
@@ -81,11 +90,8 @@ class dataGrid(object):
             Cell center location along y-axis
         """
 
-        if getattr(self, '_hy', None) is None:
-            self._hy = (
-                np.asarray(range(self.ny)) *
-                self.dy + self.y0 + self.dy/2
-            )
+        if getattr(self, "_hy", None) is None:
+            self._hy = np.asarray(range(self.ny)) * self.dy + self.y0 + self.dy / 2
 
         return self._hy
 
@@ -94,11 +100,11 @@ class dataGrid(object):
         """
             Cell center location [nC x 2]
         """
-        if getattr(self, '_gridCC', None) is None:
+        if getattr(self, "_gridCC", None) is None:
 
             X, Y = np.meshgrid(self.hx, self.hy)
 
-            self._gridCC = np.c_[X.flatten(order='F'), Y.flatten(order='F')]
+            self._gridCC = np.c_[X.flatten(order="F"), Y.flatten(order="F")]
 
         return self._gridCC
 
@@ -107,7 +113,7 @@ class dataGrid(object):
         """
             Number of padding cells  along x-axis for FFT
         """
-        if getattr(self, '_npadx', None) is None:
+        if getattr(self, "_npadx", None) is None:
             self._npadx = int(np.floor(self.values.shape[1]))
 
         return self._npadx
@@ -117,7 +123,7 @@ class dataGrid(object):
         """
             Number of padding cells  along y-axis for FFT
         """
-        if getattr(self, '_npady', None) is None:
+        if getattr(self, "_npady", None) is None:
             self._npady = int(np.floor(self.values.shape[0]))
 
         return self._npady
@@ -127,39 +133,39 @@ class dataGrid(object):
         """
             Grid values padded with mirror image cosin tapper
         """
-        if getattr(self, '_gridPadded', None) is None:
-            if getattr(self, '_valuesFilledUC', None) is not None:
+        if getattr(self, "_gridPadded", None) is None:
+            if getattr(self, "_valuesFilledUC", None) is not None:
                 grid = self.valuesFilledUC
             else:
 
                 if np.any(np.isnan(self.values)):
-                    self.indNan = np.isnan(self.values.flatten(order='F'))
+                    self.indNan = np.isnan(self.values.flatten(order="F"))
                     grid = self.valuesFilled
                 else:
                     grid = self.values
 
             # Add paddings
             dpad = np.c_[
-                np.fliplr(grid[:, 0:self.npadx]),
+                np.fliplr(grid[:, 0 : self.npadx]),
                 grid,
-                np.fliplr(grid[:, -self.npadx:])
-                ]
+                np.fliplr(grid[:, -self.npadx :]),
+            ]
 
             dpad = np.r_[
-                np.flipud(dpad[0:self.npady, :]),
+                np.flipud(dpad[0 : self.npady, :]),
                 dpad,
-                np.flipud(dpad[-self.npady:, :])
-                ]
+                np.flipud(dpad[-self.npady :, :]),
+            ]
 
             # Tapper the paddings
-            rampx = -np.cos(np.pi*np.asarray(range(self.npadx))/self.npadx)
-            rampx = np.r_[rampx, np.ones(grid.shape[1]), -rampx]/2. + 0.5
+            rampx = -np.cos(np.pi * np.asarray(range(self.npadx)) / self.npadx)
+            rampx = np.r_[rampx, np.ones(grid.shape[1]), -rampx] / 2.0 + 0.5
 
-            rampy = -np.cos(np.pi*np.asarray(range(self.npady))/self.npady)
-            rampy = np.r_[rampy, np.ones(grid.shape[0]), -rampy]/2. + 0.5
+            rampy = -np.cos(np.pi * np.asarray(range(self.npady)) / self.npady)
+            rampy = np.r_[rampy, np.ones(grid.shape[0]), -rampy] / 2.0 + 0.5
             tapperx, tappery = np.meshgrid(rampx, rampy)
 
-            self._gridPadded = tapperx*tappery*dpad
+            self._gridPadded = tapperx * tappery * dpad
 
         return self._gridPadded
 
@@ -169,13 +175,13 @@ class dataGrid(object):
             Data values
         """
 
-        if getattr(self, '_values', None) is None:
+        if getattr(self, "_values", None) is None:
 
             print("Values on the grid are not set")
 
             return
 
-        if getattr(self, '_RTP', None) is not None:
+        if getattr(self, "_RTP", None) is not None:
 
             return self._RTP
         else:
@@ -184,7 +190,7 @@ class dataGrid(object):
 
                 return ndimage.gaussian_filter(
                     self._values, sigma=self.fourier_gaussian
-                    )
+                )
 
             else:
 
@@ -195,8 +201,8 @@ class dataGrid(object):
         """
             Data values with no-data-values interpolated by minimum curvature
         """
-        if getattr(self, '_valuesFilled', None) is None:
-            values = self.values.flatten(order='F')
+        if getattr(self, "_valuesFilled", None) is None:
+            values = self.values.flatten(order="F")
 
             # Do a minimum curvature extrapolation
             isNan = np.isnan(values)
@@ -211,9 +217,11 @@ class dataGrid(object):
             xyz = self.gridCC[uInd, :]
 
             _, values[isNan] = MathUtils.minCurvatureInterp(
-                            xyz, values[uInd],
-                            xyzOut=self.gridCC[isNan, :],
-                            overlap=np.max([self.dx, self.dy]))
+                xyz,
+                values[uInd],
+                xyzOut=self.gridCC[isNan, :],
+                overlap=np.max([self.dx, self.dy]),
+            )
 
             # If there are still NDV, just do a nearest neighbour
 
@@ -225,7 +233,7 @@ class dataGrid(object):
                 dists, indexes = tree.query(self.gridCC[isNan, :])
                 values[isNan] = values[indVal[indexes]]
 
-            self._valuesFilled = values.reshape(self.values.shape, order='F')
+            self._valuesFilled = values.reshape(self.values.shape, order="F")
 
         return self._valuesFilled
 
@@ -235,7 +243,7 @@ class dataGrid(object):
             Data values with no-data-values interpolated by minimum curvature
             and upward continued.
         """
-        if getattr(self, '_valuesFilledUC', None) is None:
+        if getattr(self, "_valuesFilledUC", None) is None:
             self._valuesFilledUC = self.upwardContinuation()
 
         return self._valuesFilledUC
@@ -245,13 +253,13 @@ class dataGrid(object):
         """
             Wavenumber along the x-axis.
         """
-        if getattr(self, '_Kx', None) is None:
+        if getattr(self, "_Kx", None) is None:
 
             nx = self.gridPadded.shape[1]
-            kx = 2. * np.pi * sp.fftpack.fftfreq(nx, self.dx)
+            kx = 2.0 * np.pi * sp.fftpack.fftfreq(nx, self.dx)
 
             ny = self.gridPadded.shape[0]
-            ky = 2. * np.pi * sp.fftpack.fftfreq(ny, self.dy)
+            ky = 2.0 * np.pi * sp.fftpack.fftfreq(ny, self.dy)
 
             Ky, Kx = np.meshgrid(ky, kx)
             self._Ky, self._Kx = Ky.T, Kx.T
@@ -263,13 +271,13 @@ class dataGrid(object):
         """
             Wavenumber along the y-axis.
         """
-        if getattr(self, '_Ky', None) is None:
+        if getattr(self, "_Ky", None) is None:
 
             nx = self.gridPadded.shape[1]
-            kx = 2. * np.pi * sp.fftpack.fftfreq(nx, self.dx)
+            kx = 2.0 * np.pi * sp.fftpack.fftfreq(nx, self.dx)
 
             ny = self.gridPadded.shape[0]
-            ky = 2. * np.pi * sp.fftpack.fftfreq(ny, self.dy)
+            ky = 2.0 * np.pi * sp.fftpack.fftfreq(ny, self.dy)
 
             Ky, Kx = np.meshgrid(ky, kx)
             self._Ky, self._Kx = Ky.T, Kx.T
@@ -281,7 +289,7 @@ class dataGrid(object):
         """
             Padded grid values in the Fourier domain
         """
-        if getattr(self, '_gridFFT', None) is None:
+        if getattr(self, "_gridFFT", None) is None:
 
             self._gridFFT = np.fft.fft2(self.gridPadded)
 
@@ -292,18 +300,19 @@ class dataGrid(object):
         """
             Derivative of grid along the x-axis
         """
-        if getattr(self, '_derivativeX', None) is None:
+        if getattr(self, "_derivativeX", None) is None:
 
-            FHxD = (self.Kx*1j)*self.gridFFT
+            FHxD = (self.Kx * 1j) * self.gridFFT
             fhxd_pad = np.fft.ifft2(FHxD)
             derivX = np.real(
-                fhxd_pad[self.npady:-self.npady, self.npadx:-self.npadx])
+                fhxd_pad[self.npady : -self.npady, self.npadx : -self.npadx]
+            )
 
             if self.indNan is not None:
-                derivX = derivX.flatten(order='F')
+                derivX = derivX.flatten(order="F")
 
                 derivX[self.indNan] = np.nan
-                derivX = derivX.reshape(self.values.shape, order='F')
+                derivX = derivX.reshape(self.values.shape, order="F")
 
             self._derivativeX = derivX
 
@@ -314,19 +323,20 @@ class dataGrid(object):
         """
             Derivative of grid along the y-axis
         """
-        if getattr(self, '_derivativeY', None) is None:
+        if getattr(self, "_derivativeY", None) is None:
 
-            FHyD = (self.Ky*1j)*self.gridFFT
+            FHyD = (self.Ky * 1j) * self.gridFFT
 
             fhyd_pad = np.fft.ifft2(FHyD)
             derivY = np.real(
-                fhyd_pad[self.npady:-self.npady, self.npadx:-self.npadx])
+                fhyd_pad[self.npady : -self.npady, self.npadx : -self.npadx]
+            )
 
             if self.indNan is not None:
-                derivY = derivY.flatten(order='F')
+                derivY = derivY.flatten(order="F")
 
                 derivY[self.indNan] = np.nan
-                derivY = derivY.reshape(self.values.shape, order='F')
+                derivY = derivY.reshape(self.values.shape, order="F")
 
             self._derivativeY = derivY
 
@@ -337,18 +347,19 @@ class dataGrid(object):
         """
             First vertical derivative of grid
         """
-        if getattr(self, '_firstVertical', None) is None:
+        if getattr(self, "_firstVertical", None) is None:
 
-            FHzD = self.gridFFT*np.sqrt(self.Kx**2. + self.Ky**2.)
+            FHzD = self.gridFFT * np.sqrt(self.Kx ** 2.0 + self.Ky ** 2.0)
             fhzd_pad = np.fft.ifft2(FHzD)
             firstVD = np.real(
-                fhzd_pad[self.npady:-self.npady, self.npadx:-self.npadx])
+                fhzd_pad[self.npady : -self.npady, self.npadx : -self.npadx]
+            )
 
             if self.indNan is not None:
-                firstVD = firstVD.flatten(order='F')
+                firstVD = firstVD.flatten(order="F")
 
                 firstVD[self.indNan] = np.nan
-                firstVD = firstVD.reshape(self.values.shape, order='F')
+                firstVD = firstVD.reshape(self.values.shape, order="F")
 
             self._firstVertical = firstVD
         return self._firstVertical
@@ -358,10 +369,10 @@ class dataGrid(object):
         """
             Total horizontal derivative of grid
         """
-        if getattr(self, '_totalHorizontal', None) is None:
+        if getattr(self, "_totalHorizontal", None) is None:
 
             self._totalHorizontal = np.sqrt(
-                self.derivativeX**2. + self.derivativeY**2. + 1e-8
+                self.derivativeX ** 2.0 + self.derivativeY ** 2.0 + 1e-8
             )
 
         return self._totalHorizontal
@@ -371,11 +382,9 @@ class dataGrid(object):
         """
             Tilt angle of grid
         """
-        if getattr(self, '_tiltAngle', None) is None:
+        if getattr(self, "_tiltAngle", None) is None:
 
-            self._tiltAngle = np.arctan2(
-                self.firstVertical, self.totalHorizontal
-            )
+            self._tiltAngle = np.arctan2(self.firstVertical, self.totalHorizontal)
 
         return self._tiltAngle
 
@@ -384,12 +393,13 @@ class dataGrid(object):
         """
             Analytic signal of grid
         """
-        if getattr(self, '_analyticSignal', None) is None:
+        if getattr(self, "_analyticSignal", None) is None:
 
             self._analyticSignal = np.sqrt(
-                self.derivativeX**2. +
-                self.derivativeY**2. +
-                self.firstVertical**2. + 1e-8
+                self.derivativeX ** 2.0
+                + self.derivativeY ** 2.0
+                + self.firstVertical ** 2.0
+                + 1e-8
             )
 
         return self._analyticSignal
@@ -399,13 +409,18 @@ class dataGrid(object):
         """
             First vertical derivative of grid
         """
-        if getattr(self, '_TDXderivative', None) is None:
+        if getattr(self, "_TDXderivative", None) is None:
 
-          if getattr(self, '_TDXderivative', None) is None:
+            if getattr(self, "_TDXderivative", None) is None:
 
-              self._TDXderivative = np.arctan2(
-                np.sign(self.firstVertical)*self.totalHorizontal, -self.firstVertical
-            )*180/np.pi
+                self._TDXderivative = (
+                    np.arctan2(
+                        np.sign(self.firstVertical) * self.totalHorizontal,
+                        -self.firstVertical,
+                    )
+                    * 180
+                    / np.pi
+                )
 
         return self._TDXderivative
 
@@ -422,38 +437,39 @@ class dataGrid(object):
 
             h_xyz = MathUtils.dipazm_2_xyz(-self.inc, self.dec)
 
-            a = 2*h_xyz[0]*h_xyz[2]
-            b = 2*h_xyz[1]*h_xyz[2]
+            a = 2 * h_xyz[0] * h_xyz[2]
+            b = 2 * h_xyz[1] * h_xyz[2]
 
-            R = (self.Kx**2. + self.Ky**2.) / (
-                (h_xyz[2]**2 - h_xyz[0]**2) * self.Kx**2. +
-                (h_xyz[2]**2 - h_xyz[1]**2) * self.Ky**2. -
-                (2*h_xyz[0]*h_xyz[1]) * self.Kx * self.Ky +
-                1j * (self.Kx**2. + self.Ky**2.)**0.5 *
-                (a*self.Kx + b*self.Ky) + 1e-8
+            R = (self.Kx ** 2.0 + self.Ky ** 2.0) / (
+                (h_xyz[2] ** 2 - h_xyz[0] ** 2) * self.Kx ** 2.0
+                + (h_xyz[2] ** 2 - h_xyz[1] ** 2) * self.Ky ** 2.0
+                - (2 * h_xyz[0] * h_xyz[1]) * self.Kx * self.Ky
+                + 1j
+                * (self.Kx ** 2.0 + self.Ky ** 2.0) ** 0.5
+                * (a * self.Kx + b * self.Ky)
+                + 1e-8
             )
 
             R[0, 0] = 0
             Frtp = R * self.gridFFT
             rtp_pad = np.fft.ifft2(Frtp)
-            rtp = np.real(
-                rtp_pad[self.npady:-self.npady, self.npadx:-self.npadx])
+            rtp = np.real(rtp_pad[self.npady : -self.npady, self.npadx : -self.npadx])
 
             if self.indNan is not None:
-                rtp = rtp.flatten(order='F')
+                rtp = rtp.flatten(order="F")
 
                 rtp[self.indNan] = np.nan
-                rtp = rtp.reshape(self.values.shape, order='F')
+                rtp = rtp.reshape(self.values.shape, order="F")
 
             for prop in gridProps:
-                setattr(self, '_{}'.format(prop), None)
+                setattr(self, "_{}".format(prop), None)
 
             self._RTP = rtp
 
         else:
             self._RTP = None
             for prop in gridProps:
-                setattr(self, '_{}'.format(prop), None)
+                setattr(self, "_{}".format(prop), None)
 
     def upwardContinuation(self, z=0):
         """
@@ -461,23 +477,19 @@ class dataGrid(object):
         """
 
         self.heightUC = z
-        upFact = -(
-            np.sqrt(self.Kx**2. + self.Ky**2.) *
-            z
-        )
+        upFact = -(np.sqrt(self.Kx ** 2.0 + self.Ky ** 2.0) * z)
 
-        FzUpw = self.gridFFT*np.exp(upFact)
+        FzUpw = self.gridFFT * np.exp(upFact)
         zUpw_pad = np.fft.ifft2(FzUpw)
-        zUpw = np.real(
-            zUpw_pad[self.npady:-self.npady, self.npadx:-self.npadx])
+        zUpw = np.real(zUpw_pad[self.npady : -self.npady, self.npadx : -self.npadx])
 
         self._valuesFilledUC = zUpw.copy()
 
         if self.indNan is not None:
-            zUpw = zUpw.flatten(order='F')
+            zUpw = zUpw.flatten(order="F")
 
             zUpw[self.indNan] = np.nan
-            zUpw = zUpw.reshape(self.values.shape, order='F')
+            zUpw = zUpw.reshape(self.values.shape, order="F")
 
         return zUpw
 
@@ -508,21 +520,20 @@ def loadGRDFile(fileName, plotIt=False):
         data._values = temp
         data.nx, data.ny = grid.nx, grid.ny
         data.dx, data.dy = grid.dx, grid.dy
-        data.x0, data.y0 = grid.x0-grid.dx/2, grid.y0-grid.dy/2
+        data.x0, data.y0 = grid.x0 - grid.dx / 2, grid.y0 - grid.dy / 2
 
     if plotIt:
-        xLoc = np.asarray(range(data.nx))*data.dx+data.x0
-        yLoc = np.asarray(range(data.ny))*data.dy+data.y0
+        xLoc = np.asarray(range(data.nx)) * data.dx + data.x0
+        yLoc = np.asarray(range(data.ny)) * data.dy + data.y0
 
         fig, axs = plt.figure(figsize=(8, 8)), plt.subplot()
         fig, im, cbar = Simulator.plotData2D(
-            xLoc, yLoc, data.values, marker=False, fig=fig, ax=axs,
-            colorbar=True
+            xLoc, yLoc, data.values, marker=False, fig=fig, ax=axs, colorbar=True
         )
         axs.grid(True)
-        cbar.set_label('TMI (nT)')
+        cbar.set_label("TMI (nT)")
         plt.show()
-        fig.savefig('./images/SearchQuestII.png', bbox_inches='tight')
+        fig.savefig("./images/SearchQuestII.png", bbox_inches="tight")
 
     return data
 
@@ -549,38 +560,35 @@ def loadGeoTiffFile(fileName, plotIt=False):
     # temp[temp == -99999] = np.nan
     if np.sign(rasterObject.GetGeoTransform()[5]) == -1:
         ymax = rasterObject.GetGeoTransform()[3]
-        data.y0 = ymax - data.ny*data.dy
+        data.y0 = ymax - data.ny * data.dy
         data._values = np.flipud(temp)
     else:
         data.y0 = rasterObject.GetGeoTransform()[3]
-        ymax = data.y0 + data.ny*data.dy
+        ymax = data.y0 + data.ny * data.dy
         data._values = temp
 
-    data.limits = np.r_[data.x0, data.x0+data.nx*data.dx, data.y0, ymax]
+    data.limits = np.r_[data.x0, data.x0 + data.nx * data.dx, data.y0, ymax]
 
     proj = osr.SpatialReference(wkt=rasterObject.GetProjection())
-    data.EPSGcode = proj.GetAttrValue('AUTHORITY', 1)
+    data.EPSGcode = proj.GetAttrValue("AUTHORITY", 1)
     if plotIt:
-        xLoc = np.asarray(range(data.nx))*data.dx+data.x0
-        yLoc = np.asarray(range(data.ny))*data.dy+data.y0
+        xLoc = np.asarray(range(data.nx)) * data.dx + data.x0
+        yLoc = np.asarray(range(data.ny)) * data.dy + data.y0
 
         fig, axs = plt.figure(figsize=(8, 8)), plt.subplot()
         fig, im, cbar = Simulator.plotData2D(
-            xLoc, yLoc, data.values, marker=False, fig=fig, ax=axs,
-            colorbar=True
+            xLoc, yLoc, data.values, marker=False, fig=fig, ax=axs, colorbar=True
         )
         axs.grid(True)
-        cbar.set_label('TMI (nT)')
+        cbar.set_label("TMI (nT)")
         plt.show()
-        fig.savefig('./images/GeoTIFFSynthetic.png', bbox_inches='tight')
+        fig.savefig("./images/GeoTIFFSynthetic.png", bbox_inches="tight")
 
     return data
 
 
 def writeGeotiff(
-    array, fileName, EPSGcode,
-    xMin, xMax, yMin, yMax,
-    numBands, dataType='image'
+    array, fileName, EPSGcode, xMin, xMax, yMin, yMax, numBands, dataType="image"
 ):
     """
         Source:
@@ -591,21 +599,18 @@ def writeGeotiff(
 
     xPixels = array.shape[1]  # number of pixels in x
     yPixels = array.shape[0]  # number of pixels in y
-    pixelXSize = (xMax-xMin)/(xPixels)  # size of the pixel in X direction
-    pixelYSize = -(yMax-yMin)/(yPixels)  # size of the pixel in Y direction
+    pixelXSize = (xMax - xMin) / (xPixels)  # size of the pixel in X direction
+    pixelYSize = -(yMax - yMin) / (yPixels)  # size of the pixel in Y direction
 
-    driver = gdal.GetDriverByName('GTiff')
+    driver = gdal.GetDriverByName("GTiff")
 
     # Chose type
-    if dataType == 'image':
+    if dataType == "image":
         encodeType = gdal.GDT_Byte
     else:
         encodeType = gdal.GDT_Float32
 
-    dataset = driver.Create(
-        fileName, xPixels, yPixels, numBands,
-        encodeType,
-    )
+    dataset = driver.Create(fileName, xPixels, yPixels, numBands, encodeType)
 
     dataset.SetGeoTransform((xMin, pixelXSize, 0, yMax, 0, pixelYSize))
 
@@ -619,7 +624,7 @@ def writeGeotiff(
         dataset.GetRasterBand(1).WriteArray(np.flipud(array))
     else:
         for i in range(0, numBands):
-            dataset.GetRasterBand(i+1).WriteArray(np.flipud(array[:, :, i]))
+            dataset.GetRasterBand(i + 1).WriteArray(np.flipud(array[:, :, i]))
 
     dataset.FlushCache()  # Write to disk.
 
@@ -633,13 +638,23 @@ def readShapefile(fileName):
 
         for ii, part in enumerate(shape.shape.parts):
 
-            if ii != len(shape.shape.parts)-1:
-                x = [i[0] for i in shape.shape.points[shape.shape.parts[ii]:shape.shape.parts[ii+1]]]
-                y = [i[1] for i in shape.shape.points[shape.shape.parts[ii]:shape.shape.parts[ii+1]]]
+            if ii != len(shape.shape.parts) - 1:
+                x = [
+                    i[0]
+                    for i in shape.shape.points[
+                        shape.shape.parts[ii] : shape.shape.parts[ii + 1]
+                    ]
+                ]
+                y = [
+                    i[1]
+                    for i in shape.shape.points[
+                        shape.shape.parts[ii] : shape.shape.parts[ii + 1]
+                    ]
+                ]
 
             else:
-                x = [i[0] for i in shape.shape.points[shape.shape.parts[ii]:]]
-                y = [i[1] for i in shape.shape.points[shape.shape.parts[ii]:]]
+                x = [i[0] for i in shape.shape.points[shape.shape.parts[ii] :]]
+                y = [i[1] for i in shape.shape.points[shape.shape.parts[ii] :]]
 
             if len(x) > 10:
                 X.append(np.vstack(x))
@@ -649,8 +664,12 @@ def readShapefile(fileName):
 
 
 def exportShapefile(
-    polylines, attributes, EPSGcode=3156,
-    saveAs='./Output/MyShape', label='AvgDepth', attType='int'
+    polylines,
+    attributes,
+    EPSGcode=3156,
+    saveAs="./Output/MyShape",
+    label="AvgDepth",
+    attType="int",
 ):
 
     """
@@ -664,11 +683,7 @@ def exportShapefile(
     crs = from_epsg(int(EPSGcode))
 
     # Define a polygon feature geometry with one attribute
-    schema = {
-        'geometry': 'LineString',
-        'properties': {label: attType},
-
-    }
+    schema = {"geometry": "LineString", "properties": {label: attType}}
 
     if isinstance(polylines, QuadContourSet):
 
@@ -683,7 +698,7 @@ def exportShapefile(
         polylines = temp
 
     with fiona.open(
-        saveAs + '.shp', 'w', driver='ESRI Shapefile', schema=schema, crs=crs
+        saveAs + ".shp", "w", driver="ESRI Shapefile", schema=schema, crs=crs
     ) as c:
 
         # If there are multiple geometries, put the "for" loop here
@@ -693,18 +708,21 @@ def exportShapefile(
                 pline = LineString(list(tuple(map(tuple, poly))))
 
                 res = {}
-                res['properties'] = {}
-                res['properties'][label] = np.mean(att)
+                res["properties"] = {}
+                res["properties"][label] = np.mean(att)
 
                 # geometry of of the original polygon shapefile
-                res['geometry'] = mapping(pline)
+                res["geometry"] = mapping(pline)
                 c.write(res)
 
     # function to generate .prj file information using spatialreference.org
     def getWKT_PRJ(epsg_code):
         import urllib
+
         # access projection information
-        wkt = urllib.request.urlopen("http://spatialreference.org/ref/epsg/{0}/prettywkt/".format(epsg_code))
+        wkt = urllib.request.urlopen(
+            "http://spatialreference.org/ref/epsg/{0}/prettywkt/".format(epsg_code)
+        )
         # remove spaces between charachters
         remove_spaces = wkt.read().replace(b" ", b"")
         # place all the text on one line
@@ -718,142 +736,139 @@ def exportShapefile(
     prj.write(epsg.decode("utf-8"))
     prj.close()
 
-def fetchData(
-    path="./assets/Search/", checkDir=False, file="",
-    localCloud='Local', dtype='CSV', loadDir=False, loadFile=False
-):
 
-    def fileLoader(
-        localCloud, path, loadDir, checkDir, files,
-        dtype, loadFile
-    ):
+# def fetchData(
+#     path="./assets/Search/",
+#     checkDir=False,
+#     file="",
+#     localCloud="Local",
+#     dtype="CSV",
+#     loadDir=False,
+#     loadFile=False,
+# ):
+#     def fileLoader(localCloud, path, loadDir, checkDir, files, dtype, loadFile):
 
-        if loadDir:
+#         if loadDir:
 
-            if localCloud == 'Cloud':
-                print("Downloading... wait for it...")
+#             if localCloud == "Cloud":
+#                 print("Downloading... wait for it...")
 
-                if "?dl=0" in path:
-                    fileName = re.split('[/?]', path)[-2]
-                else:
-                    fileName = re.split('[/]', path)[-1]
-                out = download(path, './Output/' + fileName, replace=True)
-                path = './Output/'
+#                 if "?dl=0" in path:
+#                     fileName = re.split("[/?]", path)[-2]
+#                 else:
+#                     fileName = re.split("[/]", path)[-1]
+#                 out = download(path, "./Output/" + fileName, replace=True)
+#                 path = "./Output/"
 
-                if '.zip' in fileName:
-                    with zipfile.ZipFile(path+fileName) as zf:
-                        zf.extractall(path)
+#                 if ".zip" in fileName:
+#                     with zipfile.ZipFile(path + fileName) as zf:
+#                         zf.extractall(path)
 
-                    if os.path.isdir(path+fileName):
+#                     if os.path.isdir(path + fileName):
 
-                        path = path+fileName + os.path.sep
+#                         path = path + fileName + os.path.sep
 
-                    zf.close()
+#                     zf.close()
 
-        if loadFile:
-            print('Loading file:' + files)
-            print('Please standby ...')
-            if dtype == 'CSV':
-                data = np.loadtxt(files)
-                print('CSV file loaded. You will need to grid your data')
+#         if loadFile:
+#             print("Loading file:" + files)
+#             print("Please standby ...")
+#             if dtype == "CSV":
+#                 data = np.loadtxt(files)
+#                 print("CSV file loaded. You will need to grid your data")
 
-            elif dtype == 'GeoTiff':
-                data = loadGeoTiffFile(files)
-                print('Load complete')
-            elif dtype == 'GRD':
+#             elif dtype == "GeoTiff":
+#                 data = loadGeoTiffFile(files)
+#                 print("Load complete")
+#             elif dtype == "GRD":
 
-                assert os.name == 'nt', "GRD file reader only available for Windows users. Sorry, you can complain to Geosoft"
-                data = loadGRDFile(files)
-                print('Load complete')
-            return data, dtype
+#                 assert (
+#                     os.name == "nt"
+#                 ), "GRD file reader only available for Windows users. Sorry, you can complain to Geosoft"
+#                 data = loadGRDFile(files)
+#                 print("Load complete")
+#             return data, dtype
 
-    def changeFileList(_):
-        loadDir.value = False
-        checkDir.value = False
-        if localCloud.value == 'Cloud':
-            lookinto = "./Output/"
+#     def changeFileList(_):
+#         loadDir.value = False
+#         checkDir.value = False
+#         if localCloud.value == "Cloud":
+#             lookinto = "./Output/"
 
-        else:
-            lookinto = path.value
+#         else:
+#             lookinto = path.value
 
-        fileList = []
-        for pathWalk, subdirs, fileNames in os.walk(lookinto):
-            for name in fileNames:
-               fileList += [os.path.join(pathWalk, name)]
+#         fileList = []
+#         for pathWalk, subdirs, fileNames in os.walk(lookinto):
+#             for name in fileNames:
+#                 fileList += [os.path.join(pathWalk, name)]
 
-        files.options = fileList
+#         files.options = fileList
 
-    if not isinstance(file, list):
-        print(file)
-        file = [file]
+#     if not isinstance(file, list):
+#         print(file)
+#         file = [file]
 
-    def loadIt(_):
+#     def loadIt(_):
 
-        if loadFile.value:
-            loadFile.value = False
+#         if loadFile.value:
+#             loadFile.value = False
 
-    localCloud = widgets.RadioButtons(
-        options=['Local', 'Cloud'],
-        description='File Type:',
-        value=localCloud,
-        disabled=False
-    )
-    path = widgets.Text(
-        value=path,
-        description='Path:',
-        disabled=False
-    )
-    loadDir = widgets.ToggleButton(
-        value=loadDir,
-        description='Download',
-        disabled=False,
-        button_style='',
-        tooltip='Fetch file on Cloud or Locally',
-        icon='check'
-    )
-    checkDir = widgets.ToggleButton(
-        value=checkDir,
-        description='Check folder',
-        disabled=False,
-        button_style='',
-        tooltip='Fetch files in Local folder',
-        icon='check'
-    )
-    checkDir.observe(changeFileList)
-    # files = os.listdir(path.value)
+#     localCloud = widgets.RadioButtons(
+#         options=["Local", "Cloud"],
+#         description="File Type:",
+#         value=localCloud,
+#         disabled=False,
+#     )
+#     path = widgets.Text(value=path, description="Path:", disabled=False)
+#     loadDir = widgets.ToggleButton(
+#         value=loadDir,
+#         description="Download",
+#         disabled=False,
+#         button_style="",
+#         tooltip="Fetch file on Cloud or Locally",
+#         icon="check",
+#     )
+#     checkDir = widgets.ToggleButton(
+#         value=checkDir,
+#         description="Check folder",
+#         disabled=False,
+#         button_style="",
+#         tooltip="Fetch files in Local folder",
+#         icon="check",
+#     )
+#     checkDir.observe(changeFileList)
+#     # files = os.listdir(path.value)
 
-    loadFile = widgets.ToggleButton(
-        value=loadFile,
-        description='Load File',
-        disabled=False,
-        button_style='',
-        tooltip='Load data to memory',
-        icon='check'
-    )
+#     loadFile = widgets.ToggleButton(
+#         value=loadFile,
+#         description="Load File",
+#         disabled=False,
+#         button_style="",
+#         tooltip="Load data to memory",
+#         icon="check",
+#     )
 
-    # loadFile.observe(loadIt)
-    files = widgets.Dropdown(
-        options=file,
-        description='Files:',
-        disabled=False,
-    )
-    dtype = widgets.RadioButtons(
-        options=['CSV', 'GeoTiff', 'GRD'],
-        value=dtype,
-        description='File Type:',
-        disabled=False
-    )
-    out = widgets.interactive(fileLoader,
-                              localCloud=localCloud,
-                              path=path,
-                              loadDir=loadDir,
-                              checkDir=checkDir,
-                              files=files,
-                              dtype=dtype,
-                              loadFile=loadFile
-    )
+#     # loadFile.observe(loadIt)
+#     files = widgets.Dropdown(options=file, description="Files:", disabled=False)
+#     dtype = widgets.RadioButtons(
+#         options=["CSV", "GeoTiff", "GRD"],
+#         value=dtype,
+#         description="File Type:",
+#         disabled=False,
+#     )
+#     out = widgets.interactive(
+#         fileLoader,
+#         localCloud=localCloud,
+#         path=path,
+#         loadDir=loadDir,
+#         checkDir=checkDir,
+#         files=files,
+#         dtype=dtype,
+#         loadFile=loadFile,
+#     )
 
-    return out
+#     return out
 
 
 def gdalWarp(fileNameOut, fileNameIn, EPSGcode):
@@ -863,4 +878,68 @@ def gdalWarp(fileNameOut, fileNameIn, EPSGcode):
 
     grid = gdal.Open(fileNameIn)
 
-    gdal.Warp(fileNameOut, grid, dstSRS='EPSG:' + str(int(EPSGcode)))
+    gdal.Warp(fileNameOut, grid, dstSRS="EPSG:" + str(int(EPSGcode)))
+
+
+def browseFile(dtype="GRD", loadPath=False, loadFile=False):
+
+    def fileUpload(dtype, loadFile, loadPath):
+    
+        if loadFile:
+            print("Loading file:" )
+            print("Please standby ...")
+
+            if dtype == "CSV":
+                data = np.loadtxt(files)
+                print("CSV file loaded. You will need to grid your data")
+
+            elif dtype == "GeoTiff":
+                data = loadGeoTiffFile(files)
+                print("Load complete")
+            elif dtype == "GRD":
+
+                assert (
+                    os.name == "nt"
+                ), "GRD file reader only available for Windows users. Sorry, you can complain to Geosoft"
+                data = loadGRDFile(files)
+                print("Load complete")
+            return data, dtype
+
+            if loadPath:
+                files= g.fileopenbox()
+
+    def loadIt(_):
+
+        if loadFile.value:
+            loadFile.value = False
+
+    loadFile = widgets.ToggleButton(
+        value=loadFile,
+        description="Load File",
+        disabled=False,
+        button_style="",
+        tooltip="Load data to memory",
+        icon="check",
+    )
+
+    loadPath = widgets.ToggleButton(
+        value=loadPath,
+        description="Upload File Below",
+        disabled=False,
+        button_style="",
+        tooltip="Getfilepath",
+        icon="",
+    )
+
+    dtype = widgets.RadioButtons(
+        options=["CSV", "GeoTiff", "GRD"],
+        value=dtype,
+        description="File Type:",
+        disabled=False,
+    )
+
+    out = widgets.interactive(
+        fileUpload, loadFile=loadFile, dtype=dtype, loadPath=loadPath,
+    )
+
+    return out
