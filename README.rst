@@ -24,7 +24,7 @@ developed by UBC-GIF and MDRU. https://github.com/geoscixyz/Toolkit.
 
 Getting Started
 ---------------
-This tool only works for Windows users. (blame Geosoft)
+This tool only works for Windows users.
 Choose a preferred IDE to run your notebook. I'm using Visual Studio Code. 
 If you do not already have python installed, we recommend downloading and installing it locally **without Anaconda**.
 Install Geosoft Viewer for the Geosoft API to work (gxpy).
@@ -57,10 +57,9 @@ Open a new terminal, type in
  
  Dependencies  
  -------------
- Pip is the preferred way. I started off with conda and boy, times were difficult. 
- Some libraries were missing headers hence simply installation through pip would produce an error.
- To make it easier, i've included a zip file of all the site packages needed to be installed on the Z: drive. 
- (You can just copy and paste the folder into your local Python site-packages folder)
+ Pip is the preferred way. I started off with conda and boy, it was rough.
+ FOr GDAL, refer to http://git.minerva.local/minerva/docs/wikis/Geospatial/GDAL-Installation.
+
  .. code::
 
     pip install 
