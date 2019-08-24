@@ -16,7 +16,7 @@ import re
 from shapely.geometry import mapping, LineString
 import fiona
 from fiona.crs import from_epsg
-from download import download
+#from download import download
 import ipywidgets as widgets
 import shapefile
 import zipfile
@@ -737,138 +737,138 @@ def exportShapefile(
     prj.close()
 
 
-# def fetchData(
-#     path="./assets/Search/",
-#     checkDir=False,
-#     file="",
-#     localCloud="Local",
-#     dtype="CSV",
-#     loadDir=False,
-#     loadFile=False,
-# ):
-#     def fileLoader(localCloud, path, loadDir, checkDir, files, dtype, loadFile):
+def fetchData(
+    path="./assets/Search/",
+    checkDir=False,
+    file="",
+    localCloud="Local",
+    dtype="CSV",
+    loadDir=False,
+    loadFile=False,
+):
+    def fileLoader(localCloud, path, loadDir, checkDir, files, dtype, loadFile):
 
-#         if loadDir:
+        if loadDir:
 
-#             if localCloud == "Cloud":
-#                 print("Downloading... wait for it...")
+            if localCloud == "Cloud":
+                print("Downloading... wait for it...")
 
-#                 if "?dl=0" in path:
-#                     fileName = re.split("[/?]", path)[-2]
-#                 else:
-#                     fileName = re.split("[/]", path)[-1]
-#                 out = download(path, "./Output/" + fileName, replace=True)
-#                 path = "./Output/"
+                if "?dl=0" in path:
+                    fileName = re.split("[/?]", path)[-2]
+                else:
+                    fileName = re.split("[/]", path)[-1]
+                out = download(path, "./Output/" + fileName, replace=True)
+                path = "./Output/"
 
-#                 if ".zip" in fileName:
-#                     with zipfile.ZipFile(path + fileName) as zf:
-#                         zf.extractall(path)
+                if ".zip" in fileName:
+                    with zipfile.ZipFile(path + fileName) as zf:
+                        zf.extractall(path)
 
-#                     if os.path.isdir(path + fileName):
+                    if os.path.isdir(path + fileName):
 
-#                         path = path + fileName + os.path.sep
+                        path = path + fileName + os.path.sep
 
-#                     zf.close()
+                    zf.close()
 
-#         if loadFile:
-#             print("Loading file:" + files)
-#             print("Please standby ...")
-#             if dtype == "CSV":
-#                 data = np.loadtxt(files)
-#                 print("CSV file loaded. You will need to grid your data")
+        if loadFile:
+            print("Loading file:" + files)
+            print("Please standby ...")
+            if dtype == "CSV":
+                data = np.loadtxt(files)
+                print("CSV file loaded. You will need to grid your data")
 
-#             elif dtype == "GeoTiff":
-#                 data = loadGeoTiffFile(files)
-#                 print("Load complete")
-#             elif dtype == "GRD":
+            elif dtype == "GeoTiff":
+                data = loadGeoTiffFile(files)
+                print("Load complete")
+            elif dtype == "GRD":
 
-#                 assert (
-#                     os.name == "nt"
-#                 ), "GRD file reader only available for Windows users. Sorry, you can complain to Geosoft"
-#                 data = loadGRDFile(files)
-#                 print("Load complete")
-#             return data, dtype
+                assert (
+                    os.name == "nt"
+                ), "GRD file reader only available for Windows users. Sorry, you can complain to Geosoft"
+                data = loadGRDFile(files)
+                print("Load complete")
+            return data, dtype
 
-#     def changeFileList(_):
-#         loadDir.value = False
-#         checkDir.value = False
-#         if localCloud.value == "Cloud":
-#             lookinto = "./Output/"
+    def changeFileList(_):
+        loadDir.value = False
+        checkDir.value = False
+        if localCloud.value == "Cloud":
+            lookinto = "./Output/"
 
-#         else:
-#             lookinto = path.value
+        else:
+            lookinto = path.value
 
-#         fileList = []
-#         for pathWalk, subdirs, fileNames in os.walk(lookinto):
-#             for name in fileNames:
-#                 fileList += [os.path.join(pathWalk, name)]
+        fileList = []
+        for pathWalk, subdirs, fileNames in os.walk(lookinto):
+            for name in fileNames:
+                fileList += [os.path.join(pathWalk, name)]
 
-#         files.options = fileList
+        files.options = fileList
 
-#     if not isinstance(file, list):
-#         print(file)
-#         file = [file]
+    if not isinstance(file, list):
+        print(file)
+        file = [file]
 
-#     def loadIt(_):
+    def loadIt(_):
 
-#         if loadFile.value:
-#             loadFile.value = False
+        if loadFile.value:
+            loadFile.value = False
 
-#     localCloud = widgets.RadioButtons(
-#         options=["Local", "Cloud"],
-#         description="File Type:",
-#         value=localCloud,
-#         disabled=False,
-#     )
-#     path = widgets.Text(value=path, description="Path:", disabled=False)
-#     loadDir = widgets.ToggleButton(
-#         value=loadDir,
-#         description="Download",
-#         disabled=False,
-#         button_style="",
-#         tooltip="Fetch file on Cloud or Locally",
-#         icon="check",
-#     )
-#     checkDir = widgets.ToggleButton(
-#         value=checkDir,
-#         description="Check folder",
-#         disabled=False,
-#         button_style="",
-#         tooltip="Fetch files in Local folder",
-#         icon="check",
-#     )
-#     checkDir.observe(changeFileList)
-#     # files = os.listdir(path.value)
+    localCloud = widgets.RadioButtons(
+        options=["Local", "Cloud"],
+        description="File Type:",
+        value=localCloud,
+        disabled=False,
+    )
+    path = widgets.Text(value=path, description="Path:", disabled=False)
+    loadDir = widgets.ToggleButton(
+        value=loadDir,
+        description="Download",
+        disabled=False,
+        button_style="",
+        tooltip="Fetch file on Cloud or Locally",
+        icon="check",
+    )
+    checkDir = widgets.ToggleButton(
+        value=checkDir,
+        description="Check folder",
+        disabled=False,
+        button_style="",
+        tooltip="Fetch files in Local folder",
+        icon="check",
+    )
+    checkDir.observe(changeFileList)
+    # files = os.listdir(path.value)
 
-#     loadFile = widgets.ToggleButton(
-#         value=loadFile,
-#         description="Load File",
-#         disabled=False,
-#         button_style="",
-#         tooltip="Load data to memory",
-#         icon="check",
-#     )
+    loadFile = widgets.ToggleButton(
+        value=loadFile,
+        description="Load File",
+        disabled=False,
+        button_style="",
+        tooltip="Load data to memory",
+        icon="check",
+    )
 
-#     # loadFile.observe(loadIt)
-#     files = widgets.Dropdown(options=file, description="Files:", disabled=False)
-#     dtype = widgets.RadioButtons(
-#         options=["CSV", "GeoTiff", "GRD"],
-#         value=dtype,
-#         description="File Type:",
-#         disabled=False,
-#     )
-#     out = widgets.interactive(
-#         fileLoader,
-#         localCloud=localCloud,
-#         path=path,
-#         loadDir=loadDir,
-#         checkDir=checkDir,
-#         files=files,
-#         dtype=dtype,
-#         loadFile=loadFile,
-#     )
+    # loadFile.observe(loadIt)
+    files = widgets.Dropdown(options=file, description="Files:", disabled=False)
+    dtype = widgets.RadioButtons(
+        options=["CSV", "GeoTiff", "GRD"],
+        value=dtype,
+        description="File Type:",
+        disabled=False,
+    )
+    out = widgets.interactive(
+        fileLoader,
+        localCloud=localCloud,
+        path=path,
+        loadDir=loadDir,
+        checkDir=checkDir,
+        files=files,
+        dtype=dtype,
+        loadFile=loadFile,
+    )
 
-#     return out
+    return out
 
 
 def gdalWarp(fileNameOut, fileNameIn, EPSGcode):
@@ -881,10 +881,12 @@ def gdalWarp(fileNameOut, fileNameIn, EPSGcode):
     gdal.Warp(fileNameOut, grid, dstSRS="EPSG:" + str(int(EPSGcode)))
 
 
-def browseFile(dtype="GRD", loadPath=False, loadFile=False):
+def browseFile(dtype="GRD", loadFile=False):
 
-    def fileUpload(dtype, loadFile, loadPath):
-    
+    def fileUpload(dtype, loadFile):
+         
+        files= g.fileopenbox()
+
         if loadFile:
             print("Loading file:" )
             print("Please standby ...")
@@ -905,9 +907,7 @@ def browseFile(dtype="GRD", loadPath=False, loadFile=False):
                 print("Load complete")
             return data, dtype
 
-            if loadPath:
-                files= g.fileopenbox()
-
+           
     def loadIt(_):
 
         if loadFile.value:
@@ -915,21 +915,21 @@ def browseFile(dtype="GRD", loadPath=False, loadFile=False):
 
     loadFile = widgets.ToggleButton(
         value=loadFile,
-        description="Load File",
+        description="Upload File",
         disabled=False,
         button_style="",
         tooltip="Load data to memory",
         icon="check",
     )
 
-    loadPath = widgets.ToggleButton(
-        value=loadPath,
-        description="Upload File Below",
-        disabled=False,
-        button_style="",
-        tooltip="Getfilepath",
-        icon="",
-    )
+    # loadPath = widgets.ToggleButton(
+    #     value=loadPath,
+    #     description="Upload File Below",
+    #     disabled=False,
+    #     button_style="",
+    #     tooltip="Getfilepath",
+    #     icon="",
+    # )
 
     dtype = widgets.RadioButtons(
         options=["CSV", "GeoTiff", "GRD"],
@@ -939,7 +939,7 @@ def browseFile(dtype="GRD", loadPath=False, loadFile=False):
     )
 
     out = widgets.interactive(
-        fileUpload, loadFile=loadFile, dtype=dtype, loadPath=loadPath,
+        fileUpload, loadFile=loadFile, dtype=dtype,
     )
 
     return out
